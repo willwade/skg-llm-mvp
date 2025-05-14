@@ -6,21 +6,23 @@ from utils import SocialGraphManager, SuggestionGenerator
 
 # Define available models
 AVAILABLE_MODELS = {
-    "distilgpt2": "DistilGPT2 (Fast, smaller model)",
-    "gpt2": "GPT-2 (Medium size, better quality)",
     "google/gemma-3-1b-it": "Gemma 3 1B-IT (Small, instruction-tuned)",
+    "google/gemma-3-2b-it": "Gemma 3 2B-IT (Default, instruction-tuned)",
+    "google/gemma-3-4b-it": "Gemma 3 4B-IT (Better quality, instruction-tuned)",
     "Qwen/Qwen1.5-0.5B": "Qwen 1.5 0.5B (Very small, efficient)",
     "Qwen/Qwen1.5-1.8B": "Qwen 1.5 1.8B (Small, good quality)",
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "TinyLlama 1.1B (Small, chat-tuned)",
     "microsoft/phi-3-mini-4k-instruct": "Phi-3 Mini (Small, instruction-tuned)",
     "microsoft/phi-2": "Phi-2 (Small, high quality for size)",
+    "distilgpt2": "DistilGPT2 (Fast, smaller model)",
+    "gpt2": "GPT-2 (Medium size, better quality)",
 }
 
 # Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with Gemma 3B (default)
-suggestion_generator = SuggestionGenerator("google/gemma-3-1b-it")
+# Initialize the suggestion generator with Gemma 3 2B (default)
+suggestion_generator = SuggestionGenerator("google/gemma-3-2b-it")
 
 # Test the model to make sure it's working
 test_result = suggestion_generator.test_model()
@@ -67,9 +69,19 @@ def get_topics_for_person(person_id):
 
 
 def get_suggestion_categories():
-    """Get suggestion categories from the social graph."""
+    """Get suggestion categories from the social graph with emoji prefixes."""
     if "common_utterances" in social_graph.graph:
-        return list(social_graph.graph["common_utterances"].keys())
+        categories = list(social_graph.graph["common_utterances"].keys())
+        emoji_map = {
+            "greetings": "👋 greetings",
+            "needs": "🆘 needs",
+            "emotions": "😊 emotions",
+            "questions": "❓ questions",
+            "tech_talk": "💻 tech_talk",
+            "reminiscing": "🔙 reminiscing",
+            "organization": "📅 organization",
+        }
+        return [emoji_map.get(cat, cat) for cat in categories]
     return []
 
 
@@ -140,15 +152,16 @@ def generate_suggestions(
     user_input,
     suggestion_type,
     selected_topic=None,
-    model_name="google/gemma-3-1b-it",
+    model_name="google/gemma-3-2b-it",
     temperature=0.7,
+    mood=3,
     progress=gr.Progress(),
 ):
     """Generate suggestions based on the selected person and user input."""
     print(
         f"Generating suggestions with: person_id={person_id}, user_input={user_input}, "
         f"suggestion_type={suggestion_type}, selected_topic={selected_topic}, "
-        f"model={model_name}, temperature={temperature}"
+        f"model={model_name}, temperature={temperature}, mood={mood}"
     )
 
     # Initialize progress
@@ -166,9 +179,16 @@ def generate_suggestions(
     person_context = social_graph.get_person_context(person_id)
     print(f"Person context: {person_context}")
 
+    # Remove emoji prefix from suggestion_type if present
+    clean_suggestion_type = suggestion_type
+    if suggestion_type.startswith(
+        ("🤖", "🔍", "💬", "👋", "🆘", "😊", "❓", "💻", "🔙", "📅")
+    ):
+        clean_suggestion_type = suggestion_type[2:].strip()  # Remove emoji and space
+
     # Try to infer conversation type if user input is provided
     inferred_category = None
-    if user_input and suggestion_type == "auto_detect":
+    if user_input and clean_suggestion_type == "auto_detect":
         # Simple keyword matching for now - could be enhanced with ML
         user_input_lower = user_input.lower()
         if any(
@@ -215,7 +235,7 @@ def generate_suggestions(
     result = ""
 
     # If suggestion type is "model", use the language model for multiple suggestions
-    if suggestion_type == "model":
+    if clean_suggestion_type == "model":
         print("Using model for suggestions")
         progress(0.2, desc="Preparing to generate suggestions...")
 
@@ -226,6 +246,8 @@ def generate_suggestions(
             progress(progress_value, desc=f"Generating suggestion {i+1}/3")
             print(f"Generating suggestion {i+1}/3")
             try:
+                # Add mood to person context
+                person_context["mood"] = mood
                 suggestion = suggestion_generator.generate_suggestion(
                     person_context, user_input, temperature=temperature
                 )
@@ -244,14 +266,14 @@ def generate_suggestions(
         print(f"Final result: {result[:100]}...")
 
     # If suggestion type is "common_phrases", use the person's common phrases
-    elif suggestion_type == "common_phrases":
+    elif clean_suggestion_type == "common_phrases":
         phrases = social_graph.get_relevant_phrases(person_id, user_input)
         result = "### My Common Phrases with this Person:\n\n"
         for i, phrase in enumerate(phrases, 1):
             result += f"{i}. {phrase}\n\n"
 
     # If suggestion type is "auto_detect", use the inferred category or default to model
-    elif suggestion_type == "auto_detect":
+    elif clean_suggestion_type == "auto_detect":
         print(f"Auto-detect mode, inferred category: {inferred_category}")
         if inferred_category:
             utterances = social_graph.get_common_utterances(inferred_category)
@@ -270,6 +292,8 @@ def generate_suggestions(
                     progress(
                         progress_value, desc=f"Generating fallback suggestion {i+1}/3"
                     )
+                    # Add mood to person context
+                    person_context["mood"] = mood
                     suggestion = suggestion_generator.generate_suggestion(
                         person_context, user_input, temperature=temperature
                     )
@@ -284,17 +308,25 @@ def generate_suggestions(
                 result += "1. Sorry, I couldn't generate a suggestion at this time.\n\n"
 
     # If suggestion type is a category from common_utterances
-    elif suggestion_type in get_suggestion_categories():
-        print(f"Using category: {suggestion_type}")
-        utterances = social_graph.get_common_utterances(suggestion_type)
+    elif clean_suggestion_type in [
+        "greetings",
+        "needs",
+        "emotions",
+        "questions",
+        "tech_talk",
+        "reminiscing",
+        "organization",
+    ]:
+        print(f"Using category: {clean_suggestion_type}")
+        utterances = social_graph.get_common_utterances(clean_suggestion_type)
         print(f"Got utterances: {utterances}")
-        result = f"### {suggestion_type.replace('_', ' ').title()} Phrases:\n\n"
+        result = f"### {clean_suggestion_type.replace('_', ' ').title()} Phrases:\n\n"
         for i, utterance in enumerate(utterances, 1):
             result += f"{i}. {utterance}\n\n"
 
     # Default fallback
     else:
-        print(f"No handler for suggestion type: {suggestion_type}")
+        print(f"No handler for suggestion type: {clean_suggestion_type}")
         result = "No suggestions available. Please try a different option."
 
     print(f"Returning result: {result[:100]}...")
@@ -325,7 +357,7 @@ def transcribe_audio(audio_path):
 
 
 # Create the Gradio interface
-with gr.Blocks(title="Will's AAC Communication Aid") as demo:
+with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
     gr.Markdown("# Will's AAC Communication Aid")
     gr.Markdown(
         """
@@ -385,33 +417,51 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
                     lines=3,
                 )
 
-            # Audio input
-            with gr.Row():
+            # Audio input with auto-transcription
+            with gr.Column(elem_classes="audio-recorder-container"):
+                gr.Markdown("### 🎤 Or record what they said")
                 audio_input = gr.Audio(
-                    label="Or record what they said:",
+                    label="",
                     type="filepath",
                     sources=["microphone"],
+                    elem_classes="audio-recorder",
                 )
-                transcribe_btn = gr.Button("Transcribe", variant="secondary")
+                gr.Markdown(
+                    "*Recording will auto-transcribe when stopped*",
+                    elem_classes="auto-transcribe-hint",
+                )
 
-            # Suggestion type selection
+            # Suggestion type selection with emojis
             suggestion_type = gr.Radio(
                 choices=[
-                    "model",
-                    "auto_detect",
-                    "common_phrases",
+                    "🤖 model",
+                    "🔍 auto_detect",
+                    "💬 common_phrases",
                 ]
                 + get_suggestion_categories(),
-                value="model",  # Default to model for better results
+                value="🤖 model",  # Default to model for better results
                 label="How should I respond?",
-                info="Choose response type (model = AI-generated, auto_detect = automatic category detection)",
+                info="Choose response type",
+                elem_classes="emoji-response-options",
             )
+
+            # Add a mood slider with emoji indicators at the ends
+            with gr.Column(elem_classes="mood-slider-container"):
+                mood_slider = gr.Slider(
+                    minimum=1,
+                    maximum=5,
+                    value=3,
+                    step=1,
+                    label="How am I feeling today?",
+                    info="This will influence the tone of your responses (😢 Sad → Happy 😄)",
+                    elem_classes="mood-slider",
+                )
 
             # Model selection
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     choices=list(AVAILABLE_MODELS.keys()),
-                    value="google/gemma-3-1b-it",
+                    value="google/gemma-3-2b-it",
                     label="Language Model",
                     info="Select which AI model to use for generating responses",
                 )
@@ -491,12 +541,13 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             topic_dropdown,
             model_dropdown,
             temperature_slider,
+            mood_slider,
         ],
         outputs=[suggestions_output],
     )
 
-    # Transcribe audio to text
-    transcribe_btn.click(
+    # Auto-transcribe audio to text when recording stops
+    audio_input.stop_recording(
         transcribe_audio,
         inputs=[audio_input],
         outputs=[user_input],

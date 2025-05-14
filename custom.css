@@ -1,0 +1,137 @@
+/* Custom CSS for Will's AAC Communication Aid */
+
+/* Main container styling */
+.gradio-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Emoji response options */
+.emoji-response-options .gr-form {
+    margin-top: 10px;
+}
+
+/* Direct emoji labels for radio buttons */
+.emoji-response-options label[for$="model"] span:first-child::before {
+    content: "🤖 ";
+}
+
+.emoji-response-options label[for$="auto_detect"] span:first-child::before {
+    content: "🔍 ";
+}
+
+.emoji-response-options label[for$="common_phrases"] span:first-child::before {
+    content: "💬 ";
+}
+
+.emoji-response-options label[for$="greetings"] span:first-child::before {
+    content: "👋 ";
+}
+
+.emoji-response-options label[for$="needs"] span:first-child::before {
+    content: "🆘 ";
+}
+
+.emoji-response-options label[for$="emotions"] span:first-child::before {
+    content: "😊 ";
+}
+
+.emoji-response-options label[for$="questions"] span:first-child::before {
+    content: "❓ ";
+}
+
+.emoji-response-options label[for$="tech_talk"] span:first-child::before {
+    content: "💻 ";
+}
+
+.emoji-response-options label[for$="reminiscing"] span:first-child::before {
+    content: "🔙 ";
+}
+
+.emoji-response-options label[for$="organization"] span:first-child::before {
+    content: "📅 ";
+}
+
+/* Mood slider styling */
+.mood-slider-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.mood-slider .gr-slider {
+    height: 20px;
+    border-radius: 10px;
+}
+
+.mood-slider .gr-slider-value {
+    font-weight: bold;
+}
+
+/* Add emoji indicators to the ends of the slider */
+.mood-slider::before {
+    content: "😢";
+    position: absolute;
+    left: 0;
+    bottom: 5px;
+    font-size: 24px;
+}
+
+.mood-slider::after {
+    content: "😄";
+    position: absolute;
+    right: 0;
+    bottom: 5px;
+    font-size: 24px;
+}
+
+/* Style for audio recorder */
+.audio-recorder-container {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    border: 2px solid #2563eb;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: rgba(37, 99, 235, 0.05);
+}
+
+.audio-recorder-container h3 {
+    margin-top: 0;
+    color: #2563eb;
+}
+
+.audio-recorder {
+    margin: 10px 0;
+}
+
+.audio-recorder .mic-icon {
+    color: #2563eb;
+    font-size: 24px;
+}
+
+.auto-transcribe-hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: 0;
+    text-align: center;
+}
+
+/* Improve button styling */
+.gr-button-primary {
+    background-color: #2563eb;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.gr-button-primary:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Improve markdown output */
+#suggestions_output {
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8fafc;
+    border-left: 4px solid #2563eb;
+}

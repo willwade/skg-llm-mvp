@@ -277,6 +277,26 @@ class SuggestionGenerator:
             self.model_loaded = False
             return False
 
+    def _get_mood_description(self, mood_value: int) -> str:
+        """Convert mood value (1-5) to a descriptive string.
+
+        Args:
+            mood_value: Integer from 1-5 representing mood (1=sad, 5=happy)
+
+        Returns:
+            String description of the mood
+        """
+        mood_descriptions = {
+            1: "I'm feeling quite down and sad today. My responses might be more subdued.",
+            2: "I'm feeling a bit low today. I might be less enthusiastic than usual.",
+            3: "I'm feeling okay today - neither particularly happy nor sad.",
+            4: "I'm feeling pretty good today. I'm in a positive mood.",
+            5: "I'm feeling really happy and upbeat today! I'm in a great mood.",
+        }
+
+        # Default to neutral if value is out of range
+        return mood_descriptions.get(mood_value, mood_descriptions[3])
+
     def test_model(self) -> str:
         """Test if the model is working correctly."""
         if not self.model_loaded:
@@ -330,6 +350,7 @@ class SuggestionGenerator:
         selected_topic = person_context.get("selected_topic", "")
         common_phrases = person_context.get("common_phrases", [])
         frequency = person_context.get("frequency", "")
+        mood = person_context.get("mood", 3)  # Default to neutral mood (3)
 
         # Get AAC user information
         aac_user = self.aac_user_info
@@ -344,6 +365,8 @@ I am talking to {name}, who is my {role}.
 About {name}: {context}
 We typically talk about: {', '.join(topics)}
 We communicate {frequency}.
+
+My current mood: {self._get_mood_description(mood)}
 """
 
         # Add communication style based on relationship
