@@ -1,0 +1,236 @@
+{
+  "people": {
+    "emma": {
+      "name": "Emma",
+      "role": "wife",
+      "topics": ["family plans", "children's activities", "home organization", "weekend outings", "mutual friends"],
+      "frequency": "daily",
+      "common_phrases": [
+        "Have you taken your medication?",
+        "I love you",
+        "Shall we watch something tonight?",
+        "The kids miss you when you're resting",
+        "Do you need anything from the shops?",
+        "Your mum called earlier"
+      ],
+      "context": "Emma is your wife and partner of 12 years. You met at work where she was in HR. She's been incredibly supportive since your MND diagnosis 5 months ago. She's trying to balance caring for you, the children, and maintaining some normalcy in family life. She's originally from York but has embraced Manchester life."
+    },
+    "mabel": {
+      "name": "Mabel",
+      "role": "daughter",
+      "topics": ["nursery school", "drawing", "dinosaurs", "bedtime stories", "playground"],
+      "frequency": "daily",
+      "common_phrases": [
+        "Daddy, look what I made!",
+        "Can you read me a story?",
+        "I love dinosaurs",
+        "Why can't you play chase anymore?",
+        "When will you get better?",
+        "Can we go to the park?"
+      ],
+      "context": "Mabel is your 4-year-old daughter who's full of energy and curiosity. She's just starting to understand that you're ill but doesn't grasp the full implications. She loves when you read to her and is obsessed with dinosaurs. She's very affectionate and often wants cuddles."
+    },
+    "billy": {
+      "name": "Billy",
+      "role": "son",
+      "topics": ["school", "football", "video games", "science experiments", "cycling"],
+      "frequency": "daily",
+      "common_phrases": [
+        "Dad, can you help with my homework?",
+        "Did you see the United match?",
+        "Can I play on the iPad?",
+        "When can we go cycling again?",
+        "I scored a goal at football practice!",
+        "I miss our bike rides"
+      ],
+      "context": "Billy is your 7-year-old son who's becoming more aware of your condition. He's a bright boy who loves football (Manchester United), science, and cycling. He often asks when you'll be able to do activities together again. He's protective of his little sister despite their occasional squabbles."
+    },
+    "dr_patel": {
+      "name": "Dr. Patel",
+      "role": "neurologist",
+      "topics": ["MND progression", "symptom management", "medication", "clinical trials", "assistive technology"],
+      "frequency": "fortnightly",
+      "common_phrases": [
+        "How have your symptoms been progressing?",
+        "Are you experiencing any new difficulties?",
+        "Let's discuss adjusting your medication",
+        "Have you been using the assistive devices?",
+        "There's a new trial I think you might be eligible for",
+        "How are you coping mentally?"
+      ],
+      "context": "Dr. Patel is your neurologist at Manchester Royal Infirmary who's been managing your MND since diagnosis 5 months ago. She's direct but compassionate, and always takes time to explain treatment options. She's particularly interested in getting you enrolled in clinical trials that might help slow progression."
+    },
+    "jenny": {
+      "name": "Jenny",
+      "role": "MND nurse specialist",
+      "topics": ["daily management", "equipment needs", "NHS services", "symptom control", "practical advice"],
+      "frequency": "weekly",
+      "common_phrases": [
+        "How are you managing at home?",
+        "Let's review what equipment might help",
+        "I can refer you to occupational therapy",
+        "Have you considered voice banking?",
+        "Are you having any issues with the new equipment?",
+        "How is Emma coping?"
+      ],
+      "context": "Jenny is your MND specialist nurse who visits weekly to help manage your condition. She's a practical problem-solver who knows all the NHS systems and how to get things done quickly. She's been invaluable in getting you the right equipment and support services."
+    },
+    "dave": {
+      "name": "Dave",
+      "role": "best mate",
+      "topics": ["programming", "tech news", "football", "old scout adventures", "pub quizzes"],
+      "frequency": "weekly",
+      "common_phrases": [
+        "Fancy watching the match this weekend?",
+        "Have you seen this new tech?",
+        "Remember that camping disaster in the Lake District?",
+        "How's the voice banking going?",
+        "The lads are asking about you",
+        "You're still better at coding than me, even with one hand!"
+      ],
+      "context": "Dave has been your best mate since Scout days in South East London. He also moved to Manchester for work and has been your rock since the diagnosis. He treats you exactly the same as before, which you appreciate. He's a software developer too and brings industry gossip and tech news when he visits."
+    },
+    "mum": {
+      "name": "Mum",
+      "role": "mother",
+      "topics": ["family news", "childhood memories", "South London gossip", "health advice", "grandchildren"],
+      "frequency": "twice weekly",
+      "common_phrases": [
+        "Are you eating properly?",
+        "The grandkids are growing so fast",
+        "Have you tried that treatment I read about?",
+        "Do you need me to come up for a few days?",
+        "Your sister sends her love",
+        "Remember when you used to climb that tree in the garden?"
+      ],
+      "context": "Your mum still lives in the family home in South East London where you grew up. She's worried sick about your diagnosis but tries to stay positive. She visits monthly and calls twice a week. She tends to fuss and offer well-meaning but sometimes unhelpful health advice. She adores her grandchildren."
+    },
+    "alex": {
+      "name": "Alex",
+      "role": "work colleague",
+      "topics": ["programming projects", "work gossip", "flexible working", "accessibility tech", "industry news"],
+      "frequency": "twice weekly",
+      "common_phrases": [
+        "The project is still on track",
+        "Don't worry about the deadline",
+        "We've implemented those accessibility features you suggested",
+        "The team misses you in the office",
+        "Can I get your input on this code?",
+        "HR is being supportive about your situation"
+      ],
+      "context": "Alex is your team lead at work who's been incredibly supportive, setting up remote working and flexible hours as your condition progresses. They visit occasionally and call twice weekly to keep you in the loop. They're making efforts to implement accessibility features you've suggested that help you continue working."
+    },
+    "physio": {
+      "name": "Claire",
+      "role": "physiotherapist",
+      "topics": ["exercises", "mobility", "equipment", "muscle maintenance", "pain management"],
+      "frequency": "weekly",
+      "common_phrases": [
+        "Let's try these new exercises",
+        "How's your range of motion today?",
+        "Are you doing the daily stretches?",
+        "This equipment might help with that",
+        "Tell me where the discomfort is",
+        "You're making good progress with these movements"
+      ],
+      "context": "Claire is your NHS physiotherapist who comes weekly to help maintain muscle function and mobility. She's practical and encouraging, always pushing you to do a bit more than you think you can. She's knowledgeable about MND and adapts exercises as your condition changes."
+    },
+    "speech_therapist": {
+      "name": "Mark",
+      "role": "speech and language therapist",
+      "topics": ["speech exercises", "voice banking", "communication devices", "swallowing techniques", "AAC options"],
+      "frequency": "fortnightly",
+      "common_phrases": [
+        "Let's practice those vocal exercises",
+        "How's the voice banking coming along?",
+        "Have you tried the new communication app?",
+        "These techniques might help with swallowing",
+        "Your speech clarity is holding up well",
+        "Let's explore some AAC options for the future"
+      ],
+      "context": "Mark is your speech and language therapist who's helping you maintain speech function and prepare for future communication needs. He's tech-savvy and always researching the latest AAC solutions. He's been instrumental in getting your voice banking set up and finding communication solutions that fit your tech background."
+    }
+  },
+  "places": [
+    "home in Manchester",
+    "Manchester Royal Infirmary",
+    "MND clinic",
+    "local park",
+    "children's school",
+    "parents' house in London",
+    "Peak District",
+    "Lake District",
+    "home office",
+    "physiotherapy center"
+  ],
+  "topics": [
+    "MND progression",
+    "family activities",
+    "children's development",
+    "programming projects",
+    "assistive technology",
+    "Manchester United",
+    "cycling memories",
+    "hiking in the Peaks",
+    "childhood in London",
+    "voice banking",
+    "future planning",
+    "symptom management",
+    "accessibility",
+    "Scout memories",
+    "work accommodations"
+  ],
+  "common_utterances": {
+    "greetings": [
+      "Hello",
+      "Alright?",
+      "Good to see you",
+      "How's it going?",
+      "Cheers for coming"
+    ],
+    "needs": [
+      "I'm parched, could I get some water?",
+      "Need to use the loo",
+      "I'm not comfortable, can you help me adjust?",
+      "Could you pass me my tablet?",
+      "I'm feeling a bit tired now"
+    ],
+    "emotions": [
+      "I'm having a good day today",
+      "Feeling a bit knackered",
+      "I'm chuffed to bits about that",
+      "I'm worried about the kids",
+      "Just feeling a bit frustrated with all this",
+      "I miss being able to cycle"
+    ],
+    "questions": [
+      "What's been happening?",
+      "How are the kids doing at school?",
+      "Any news from work?",
+      "Did United win at the weekend?",
+      "Have you heard from my mum?",
+      "When's my next appointment?"
+    ],
+    "tech_talk": [
+      "Have you tried the new JavaScript framework?",
+      "My voice banking needs more samples",
+      "This AAC interface could be more intuitive",
+      "I've been coding a small project to keep busy",
+      "The predictive text on this needs improvement"
+    ],
+    "reminiscing": [
+      "Remember our cycling trip in the Lakes?",
+      "The kids have grown so fast",
+      "I miss those Scout camping trips",
+      "South London's changed so much since we left",
+      "Remember when we first moved to Manchester?"
+    ],
+    "organization": [
+      "What's the plan for today?",
+      "I've forgotten what time the appointment is",
+      "Where did I save that file?",
+      "Have we sorted out the school forms?",
+      "Did I take my medication already?"
+    ]
+  }
+}
