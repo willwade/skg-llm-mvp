@@ -274,9 +274,7 @@ class SuggestionGenerator:
         try:
             test_prompt = "I am Will. My son Billy asked about football. I respond:"
             print(f"Testing model with prompt: {test_prompt}")
-            response = self.generator(
-                test_prompt, max_new_tokens=30, do_sample=True, truncation=True
-            )
+            response = self.generator(test_prompt, max_new_tokens=30, do_sample=True)
             result = response[0]["generated_text"][len(test_prompt) :]
             print(f"Test response: {result}")
             return f"Model test successful: {result}"
@@ -405,7 +403,8 @@ My response to {name}:"""
                 do_sample=True,
                 top_p=0.92,
                 top_k=50,
-                truncation=True,
+                # Only use truncation if we're providing a max_length
+                truncation=False,
             )
             # Extract only the generated part, not the prompt
             result = response[0]["generated_text"][len(prompt) :]
