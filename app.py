@@ -364,7 +364,7 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             topic_dropdown = gr.Dropdown(
                 choices=[],  # Will be populated when a person is selected
                 label="Topic (optional):",
-                info="Select a topic relevant to this person",
+                info="Select a topic to discuss or respond about",
                 allow_custom_value=True,
             )
 
@@ -374,7 +374,7 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             # User input section
             with gr.Row():
                 user_input = gr.Textbox(
-                    label="What they said to me:",
+                    label="What they said to me: (leave empty to start a conversation)",
                     placeholder='Examples:\n"How was your physio session today?"\n"The kids are asking if you want to watch a movie tonight"\n"I\'ve been looking at that new AAC software you mentioned"',
                     lines=3,
                 )
@@ -391,14 +391,14 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             # Suggestion type selection
             suggestion_type = gr.Radio(
                 choices=[
-                    "auto_detect",
                     "model",
+                    "auto_detect",
                     "common_phrases",
                 ]
                 + get_suggestion_categories(),
                 value="model",  # Default to model for better results
                 label="How should I respond?",
-                info="Choose what kind of responses you want (model = AI-generated)",
+                info="Choose response type (model = AI-generated, auto_detect = automatic category detection)",
             )
 
             # Model selection
@@ -420,7 +420,9 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
                 )
 
             # Generate button
-            generate_btn = gr.Button("Generate My Responses", variant="primary")
+            generate_btn = gr.Button(
+                "Generate My Responses/Conversation Starters", variant="primary"
+            )
 
             # Model status
             model_status = gr.Markdown(

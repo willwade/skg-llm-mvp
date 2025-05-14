@@ -372,13 +372,52 @@ We communicate {frequency}.
             elif selected_topic == "cycling" and "cycling" in context:
                 prompt += "I miss being able to cycle but enjoy talking about past cycling adventures.\n"
 
-        # Add the user's message if provided
+        # Add the user's message if provided, or set up for conversation initiation
         if user_input:
+            # If user input is provided, we're responding to something
             prompt += f'\n{name} just said to me: "{user_input}"\n'
-        elif common_phrases:
-            # Use a common phrase from the person if no message is provided
-            default_message = common_phrases[0]
-            prompt += f'\n{name} typically says things like: "{default_message}"\n'
+            prompt += f"I want to respond directly to what {name} just said.\n"
+        else:
+            # No user input means we're initiating a conversation
+            if selected_topic:
+                # If a topic is selected, initiate conversation about that topic
+                prompt += f"\nI'm about to start a conversation with {name} about {selected_topic}.\n"
+
+                # Add specific context about initiating this topic with this person
+                if selected_topic == "football" and "Manchester United" in context:
+                    prompt += (
+                        "We both support Manchester United and often discuss matches.\n"
+                    )
+                elif selected_topic == "family" and role in [
+                    "wife",
+                    "husband",
+                    "son",
+                    "daughter",
+                ]:
+                    prompt += (
+                        "I want to check in about our family plans or activities.\n"
+                    )
+                elif selected_topic == "health" and role in [
+                    "doctor",
+                    "nurse",
+                    "therapist",
+                ]:
+                    prompt += "I want to discuss my health condition or symptoms.\n"
+                elif selected_topic == "work" and role in ["work colleague", "boss"]:
+                    prompt += "I want to discuss a work-related matter.\n"
+
+                prompt += f"I want to initiate a conversation about {selected_topic} in a natural way.\n"
+            elif common_phrases:
+                # Use context about our typical conversations if no specific topic
+                prompt += f"\nI'm about to start a conversation with {name}.\n"
+                default_message = common_phrases[0]
+                prompt += f'{name} typically says things like: "{default_message}"\n'
+                prompt += f"We typically talk about: {', '.join(topics)}\n"
+                prompt += "I want to initiate a conversation in a natural way based on our relationship.\n"
+            else:
+                # Generic conversation starter
+                prompt += f"\nI'm about to start a conversation with {name}.\n"
+                prompt += "I want to initiate a conversation in a natural way based on our relationship.\n"
 
         # Add the response prompt with specific guidance
         # Check if this is an instruction-tuned model
@@ -389,19 +428,39 @@ We communicate {frequency}.
 
         if is_instruction_model:
             # Use instruction format for instruction-tuned models
-            prompt += f"""
+            if user_input:
+                # Responding to something
+                prompt += f"""
 <instruction>
 Respond to {name} in a way that is natural, brief (1-2 sentences), and directly relevant to what they just said.
 Use language appropriate for our relationship.
 </instruction>
 
 My response to {name}:"""
+            else:
+                # Initiating a conversation
+                prompt += f"""
+<instruction>
+Start a conversation with {name} in a natural, brief (1-2 sentences) way.
+Use language appropriate for our relationship.
+If a topic was selected, focus on that topic.
+</instruction>
+
+My conversation starter to {name}:"""
         else:
             # Use standard format for non-instruction models
-            prompt += f"""
+            if user_input:
+                # Responding to something
+                prompt += f"""
 I want to respond to {name} in a way that is natural, brief (1-2 sentences), and directly relevant to what they just said. I'll use language appropriate for our relationship.
 
 My response to {name}:"""
+            else:
+                # Initiating a conversation
+                prompt += f"""
+I want to start a conversation with {name} in a natural, brief (1-2 sentences) way. I'll use language appropriate for our relationship.
+
+My conversation starter to {name}:"""
 
         # Generate suggestion
         try:
