@@ -7,8 +7,9 @@ from utils import SocialGraphManager, SuggestionGenerator
 # Define available models
 AVAILABLE_MODELS = {
     "google/gemma-3-1b-it": "Gemma 3 1B-IT (Small, instruction-tuned)",
-    "google/gemma-3-2b-it": "Gemma 3 2B-IT (Default, instruction-tuned)",
-    "google/gemma-3-4b-it": "Gemma 3 4B-IT (Better quality, instruction-tuned)",
+    "google/gemma-3-4b-it": "Gemma 3 4B-IT (Default, instruction-tuned)",
+    "google/gemma-3-12b-it": "Gemma 3 12B-IT (Better quality, instruction-tuned)",
+    "google/gemma-3-27b-it": "Gemma 3 27B-IT (Best quality, instruction-tuned)",
     "Qwen/Qwen1.5-0.5B": "Qwen 1.5 0.5B (Very small, efficient)",
     "Qwen/Qwen1.5-1.8B": "Qwen 1.5 1.8B (Small, good quality)",
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "TinyLlama 1.1B (Small, chat-tuned)",
@@ -21,8 +22,8 @@ AVAILABLE_MODELS = {
 # Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with Gemma 3 2B (default)
-suggestion_generator = SuggestionGenerator("google/gemma-3-2b-it")
+# Initialize the suggestion generator with Gemma 3 4B (default)
+suggestion_generator = SuggestionGenerator("google/gemma-3-4b-it")
 
 # Test the model to make sure it's working
 test_result = suggestion_generator.test_model()
@@ -152,7 +153,7 @@ def generate_suggestions(
     user_input,
     suggestion_type,
     selected_topic=None,
-    model_name="google/gemma-3-2b-it",
+    model_name="google/gemma-3-4b-it",
     temperature=0.7,
     mood=3,
     progress=gr.Progress(),
@@ -461,7 +462,7 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     choices=list(AVAILABLE_MODELS.keys()),
-                    value="google/gemma-3-2b-it",
+                    value="google/gemma-3-4b-it",
                     label="Language Model",
                     info="Select which AI model to use for generating responses",
                 )
