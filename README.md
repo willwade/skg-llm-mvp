@@ -37,16 +37,31 @@ python app.py
 
 ## How It Works
 
-1. **Social Graph**: The system uses a JSON-based social graph (`social_graph.json`) that contains information about people, their relationships, common topics, and phrases.
+1. **Social Graph**: The system uses a JSON-based social graph (`social_graph.json`) that contains information about:
+   - Will (the AAC user) - a 38-year-old with MND
+   - People in Will's life (family, healthcare providers, friends, colleagues)
+   - Relationships, common topics, and phrases
 
-2. **Context Retrieval**: When you select a person, the system retrieves relevant context information from the social graph.
+2. **Context Retrieval**: When you select who you are (as someone talking to Will), the system retrieves relevant context information from the social graph.
 
-3. **Suggestion Generation**: Based on the selected person and optional conversation context, the system generates suggestions using:
+3. **Conversation Input**: You enter or record what you've said to Will in the conversation.
+
+4. **Suggestion Generation**: Based on who you are and what you've said, the system generates appropriate responses for Will using:
    - A language model (Flan-T5)
-   - Common phrases associated with the person
+   - Common phrases Will might say to you
    - General utterance categories (greetings, needs, emotions, questions)
 
-4. **User Interface**: The Gradio interface provides an intuitive way to interact with the system, select people, and get suggestions.
+5. **User Interface**: The Gradio interface provides an intuitive way to simulate conversations with Will and see what an AAC system might suggest for him to say.
+
+## How to Use
+
+1. Select who you (Will) are talking to from the dropdown menu
+2. Optionally select a conversation topic
+3. View the relationship context information
+4. Enter what the other person said to you, or record audio
+5. If you record audio, click "Transcribe" to convert it to text
+6. Choose how you want to respond (auto-detect, AI-generated, common phrases, etc.)
+7. Click "Generate My Responses" to get contextually relevant suggestions
 
 ## Customizing the Social Graph
 

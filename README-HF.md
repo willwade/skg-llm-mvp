@@ -1,16 +1,19 @@
-# AAC Social Graph Assistant for MND
+# Will's AAC Communication Aid
 
-An Augmentative and Alternative Communication (AAC) system that uses a social graph to provide contextually relevant suggestions for users with Motor Neurone Disease (MND).
+An Augmentative and Alternative Communication (AAC) system that uses a social graph to provide contextually relevant suggestions for Will, a user with Motor Neurone Disease (MND).
 
 ## About
 
-This demo showcases an AAC system that uses a social graph to provide contextually relevant suggestions for users with MND. The system allows users to select who they are talking to and provides suggestions based on the relationship and common topics of conversation, tailored to the British context with NHS healthcare terminology.
+This demo simulates an AAC system from Will's perspective (a 38-year-old with MND). The system allows Will to select who he's talking to, optionally choose a conversation topic, and get appropriate responses based on what the other person has said. All suggestions are tailored to the relationship and conversation context, using British English and NHS healthcare terminology where appropriate.
 
 ## Features
 
-- **Person-Specific Suggestions**: Select who you're talking to and get suggestions tailored to that relationship
+- **Person-Specific Suggestions**: Select who you (Will) are talking to and get tailored responses
+- **Topic Selection**: Choose conversation topics relevant to your relationship
 - **Context-Aware**: Uses a social graph to understand relationships and common topics
-- **Multiple Suggestion Types**: Get suggestions from a language model, common phrases, or predefined utterance categories
+- **Speech Recognition**: Record what others have said to you and have it transcribed
+- **Auto-Detection**: Automatically detect conversation type from what others say
+- **Multiple Response Types**: Get AI-generated responses, common phrases, or category-specific utterances
 - **British Context**: Designed with British English and NHS healthcare context in mind
 - **MND-Specific**: Tailored for the needs of someone with Motor Neurone Disease
 - **Expandable**: Easily improve the system by enhancing the social graph JSON file
@@ -30,12 +33,13 @@ The current social graph represents a British person with MND who:
 
 ## How to Use
 
-1. Select a person from the dropdown menu
-2. View their context information
-3. Optionally enter current conversation context or record audio
-4. If you record audio, click "Transcribe" to convert it to text
-5. Choose a suggestion type
-6. Click "Generate Suggestions" to get contextually relevant phrases
+1. Select who you (Will) are talking to from the dropdown menu
+2. Optionally select a conversation topic
+3. View the relationship context information
+4. Enter what the other person said to you, or record audio
+5. If you record audio, click "Transcribe" to convert it to text
+6. Choose how you want to respond (auto-detect, AI-generated, common phrases, etc.)
+7. Click "Generate My Responses" to get contextually relevant suggestions
 
 ## Customizing the Social Graph
 

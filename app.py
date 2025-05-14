@@ -6,14 +6,24 @@ from utils import SocialGraphManager, SuggestionGenerator
 
 # Initialize the social graph manager and suggestion generator
 social_graph = SocialGraphManager("social_graph.json")
-suggestion_generator = SuggestionGenerator()
+
+# Initialize the suggestion generator with distilgpt2
+suggestion_generator = SuggestionGenerator("distilgpt2")
+
+# Test the model to make sure it's working
+test_result = suggestion_generator.test_model()
+print(f"Model test result: {test_result}")
+
+# If the model didn't load, use the fallback responses
+if not suggestion_generator.model_loaded:
+    print("Model failed to load, using fallback responses...")
+    # The SuggestionGenerator class has built-in fallback responses
 
 # Initialize Whisper model (using the smallest model for speed)
 try:
     whisper_model = whisper.load_model("tiny")
     whisper_loaded = True
-except Exception as e:
-    print(f"Warning: Could not load Whisper model: {e}")
+except Exception:
     whisper_loaded = False
 
 
@@ -25,7 +35,22 @@ def format_person_display(person):
 def get_people_choices():
     """Get formatted choices for the people dropdown."""
     people = social_graph.get_people_list()
-    return {format_person_display(person): person["id"] for person in people}
+    choices = {}
+    for person in people:
+        display_name = format_person_display(person)
+        person_id = person["id"]
+        choices[display_name] = person_id
+    return choices
+
+
+def get_topics_for_person(person_id):
+    """Get topics for a specific person."""
+    if not person_id:
+        return []
+
+    person_context = social_graph.get_person_context(person_id)
+    topics = person_context.get("topics", [])
+    return topics
 
 
 def get_suggestion_categories():
@@ -38,49 +63,164 @@ def get_suggestion_categories():
 def on_person_change(person_id):
     """Handle person selection change."""
     if not person_id:
-        return "", ""
+        return "", "", []
 
     person_context = social_graph.get_person_context(person_id)
-    context_info = (
-        f"**{person_context.get('name', '')}** - {person_context.get('role', '')}\n\n"
-    )
-    context_info += f"**Topics:** {', '.join(person_context.get('topics', []))}\n\n"
-    context_info += f"**Frequency:** {person_context.get('frequency', '')}\n\n"
-    context_info += f"**Context:** {person_context.get('context', '')}"
+
+    # Create a more user-friendly context display
+    name = person_context.get("name", "")
+    role = person_context.get("role", "")
+    frequency = person_context.get("frequency", "")
+    context_text = person_context.get("context", "")
+
+    context_info = f"""### I'm talking to: {name}
+**Relationship:** {role}
+**How often we talk:** {frequency}
+
+**Our relationship:** {context_text}
+"""
 
     # Get common phrases for this person
     phrases = person_context.get("common_phrases", [])
     phrases_text = "\n\n".join(phrases)
 
-    return context_info, phrases_text
+    # Get topics for this person
+    topics = person_context.get("topics", [])
+
+    return context_info, phrases_text, topics
 
 
-def generate_suggestions(person_id, user_input, suggestion_type):
+def generate_suggestions(person_id, user_input, suggestion_type, selected_topic=None):
     """Generate suggestions based on the selected person and user input."""
+    print(
+        f"Generating suggestions with: person_id={person_id}, user_input={user_input}, suggestion_type={suggestion_type}, selected_topic={selected_topic}"
+    )
+
     if not person_id:
-        return "Please select a person first."
+        print("No person_id provided")
+        return "Please select who you're talking to first."
 
     person_context = social_graph.get_person_context(person_id)
+    print(f"Person context: {person_context}")
 
-    # If suggestion type is "model", use the language model
+    # Try to infer conversation type if user input is provided
+    inferred_category = None
+    if user_input and suggestion_type == "auto_detect":
+        # Simple keyword matching for now - could be enhanced with ML
+        user_input_lower = user_input.lower()
+        if any(
+            word in user_input_lower
+            for word in ["hi", "hello", "morning", "afternoon", "evening"]
+        ):
+            inferred_category = "greetings"
+        elif any(
+            word in user_input_lower
+            for word in ["feel", "tired", "happy", "sad", "frustrated"]
+        ):
+            inferred_category = "emotions"
+        elif any(
+            word in user_input_lower
+            for word in ["need", "want", "help", "water", "toilet", "loo"]
+        ):
+            inferred_category = "needs"
+        elif any(
+            word in user_input_lower
+            for word in ["what", "how", "when", "where", "why", "did"]
+        ):
+            inferred_category = "questions"
+        elif any(
+            word in user_input_lower
+            for word in ["remember", "used to", "back then", "when we"]
+        ):
+            inferred_category = "reminiscing"
+        elif any(
+            word in user_input_lower
+            for word in ["code", "program", "software", "app", "tech"]
+        ):
+            inferred_category = "tech_talk"
+        elif any(
+            word in user_input_lower
+            for word in ["plan", "schedule", "appointment", "tomorrow", "later"]
+        ):
+            inferred_category = "organization"
+
+    # Add topic to context if selected
+    if selected_topic:
+        person_context["selected_topic"] = selected_topic
+
+    # Format the output with multiple suggestions
+    result = ""
+
+    # If suggestion type is "model", use the language model for multiple suggestions
     if suggestion_type == "model":
-        suggestion = suggestion_generator.generate_suggestion(
-            person_context, user_input
-        )
-        return suggestion
+        print("Using model for suggestions")
+        # Generate 3 different suggestions
+        suggestions = []
+        for i in range(3):
+            print(f"Generating suggestion {i+1}/3")
+            try:
+                suggestion = suggestion_generator.generate_suggestion(
+                    person_context, user_input, temperature=0.7
+                )
+                print(f"Generated suggestion: {suggestion}")
+                suggestions.append(suggestion)
+            except Exception as e:
+                print(f"Error generating suggestion: {e}")
+                suggestions.append("Error generating suggestion")
+
+        result = "### AI-Generated Responses:\n\n"
+        for i, suggestion in enumerate(suggestions, 1):
+            result += f"{i}. {suggestion}\n\n"
+
+        print(f"Final result: {result}")
 
     # If suggestion type is "common_phrases", use the person's common phrases
     elif suggestion_type == "common_phrases":
         phrases = social_graph.get_relevant_phrases(person_id, user_input)
-        return "\n\n".join(phrases)
+        result = "### My Common Phrases with this Person:\n\n"
+        for i, phrase in enumerate(phrases, 1):
+            result += f"{i}. {phrase}\n\n"
+
+    # If suggestion type is "auto_detect", use the inferred category or default to model
+    elif suggestion_type == "auto_detect":
+        print(f"Auto-detect mode, inferred category: {inferred_category}")
+        if inferred_category:
+            utterances = social_graph.get_common_utterances(inferred_category)
+            print(f"Got utterances for category {inferred_category}: {utterances}")
+            result = f"### Auto-detected category: {inferred_category.replace('_', ' ').title()}\n\n"
+            for i, utterance in enumerate(utterances, 1):
+                result += f"{i}. {utterance}\n\n"
+        else:
+            print("No category inferred, falling back to model")
+            # Fall back to model if we couldn't infer a category
+            try:
+                suggestion = suggestion_generator.generate_suggestion(
+                    person_context, user_input
+                )
+                print(f"Generated fallback suggestion: {suggestion}")
+                result = "### AI-Generated Response (no category detected):\n\n"
+                result += f"1. {suggestion}\n\n"
+            except Exception as e:
+                print(f"Error generating fallback suggestion: {e}")
+                result = "### Could not generate a response:\n\n"
+                result += "1. Sorry, I couldn't generate a suggestion at this time.\n\n"
 
     # If suggestion type is a category from common_utterances
     elif suggestion_type in get_suggestion_categories():
+        print(f"Using category: {suggestion_type}")
         utterances = social_graph.get_common_utterances(suggestion_type)
-        return "\n\n".join(utterances)
+        print(f"Got utterances: {utterances}")
+        result = f"### {suggestion_type.replace('_', ' ').title()} Phrases:\n\n"
+        for i, utterance in enumerate(utterances, 1):
+            result += f"{i}. {utterance}\n\n"
 
     # Default fallback
-    return "No suggestions available."
+    else:
+        print(f"No handler for suggestion type: {suggestion_type}")
+        result = "No suggestions available. Please try a different option."
+
+    print(f"Returning result: {result[:100]}...")
+    return result
 
 
 def transcribe_audio(audio_path):
@@ -92,40 +232,75 @@ def transcribe_audio(audio_path):
         # Transcribe the audio
         result = whisper_model.transcribe(audio_path)
         return result["text"]
-    except Exception as e:
-        print(f"Error transcribing audio: {e}")
+    except Exception:
         return "Could not transcribe audio. Please try again."
 
 
 # Create the Gradio interface
-with gr.Blocks(title="AAC Social Graph Assistant") as demo:
-    gr.Markdown("# AAC Social Graph Assistant")
+with gr.Blocks(title="Will's AAC Communication Aid") as demo:
+    gr.Markdown("# Will's AAC Communication Aid")
     gr.Markdown(
-        "Select who you're talking to, and get contextually relevant suggestions."
+        """
+    This demo simulates an AAC system from Will's perspective (a 38-year-old with MND).
+
+    **How to use this demo:**
+    1. Select who you (Will) are talking to from the dropdown
+    2. Optionally select a conversation topic
+    3. Enter or record what the other person said to you
+    4. Get suggested responses based on your relationship with that person
+    """
     )
+
+    # Display information about Will
+    with gr.Accordion("About Me (Will)", open=False):
+        gr.Markdown(
+            """
+        I'm Will, a 38-year-old computer programmer from Manchester with MND (diagnosed 5 months ago).
+        I live with my wife Emma and two children (Mabel, 4 and Billy, 7).
+        Originally from South East London, I enjoy technology, Manchester United, and have fond memories of cycling and hiking.
+        I'm increasingly using this AAC system as my speech becomes more difficult.
+        """
+        )
 
     with gr.Row():
         with gr.Column(scale=1):
             # Person selection
             person_dropdown = gr.Dropdown(
-                choices=get_people_choices(), label="Who are you talking to?"
+                choices=get_people_choices(),
+                label="I'm talking to:",
+                info="Select who you (Will) are talking to",
+            )
+
+            # Get topics for the selected person
+            def get_filtered_topics(person_id):
+                if not person_id:
+                    return []
+                person_context = social_graph.get_person_context(person_id)
+                return person_context.get("topics", [])
+
+            # Topic selection dropdown
+            topic_dropdown = gr.Dropdown(
+                choices=[],  # Will be populated when a person is selected
+                label="Topic (optional):",
+                info="Select a topic relevant to this person",
+                allow_custom_value=True,
             )
 
             # Context display
-            context_display = gr.Markdown(label="Context Information")
+            context_display = gr.Markdown(label="Relationship Context")
 
             # User input section
             with gr.Row():
                 user_input = gr.Textbox(
-                    label="Your current conversation (optional)",
-                    placeholder="Type or paste current conversation context here...",
+                    label="What they said to me:",
+                    placeholder='Examples:\n"How was your physio session today?"\n"The kids are asking if you want to watch a movie tonight"\n"I\'ve been looking at that new AAC software you mentioned"',
                     lines=3,
                 )
 
             # Audio input
             with gr.Row():
                 audio_input = gr.Audio(
-                    label="Or record your conversation",
+                    label="Or record what they said:",
                     type="filepath",
                     sources=["microphone"],
                 )
@@ -133,39 +308,56 @@ with gr.Blocks(title="AAC Social Graph Assistant") as demo:
 
             # Suggestion type selection
             suggestion_type = gr.Radio(
-                choices=["model", "common_phrases"] + get_suggestion_categories(),
-                value="model",
-                label="Suggestion Type",
+                choices=[
+                    "auto_detect",
+                    "model",
+                    "common_phrases",
+                ]
+                + get_suggestion_categories(),
+                value="model",  # Default to model for better results
+                label="How should I respond?",
+                info="Choose what kind of responses you want (model = AI-generated)",
             )
 
             # Generate button
-            generate_btn = gr.Button("Generate Suggestions", variant="primary")
+            generate_btn = gr.Button("Generate My Responses", variant="primary")
 
         with gr.Column(scale=1):
             # Common phrases
             common_phrases = gr.Textbox(
-                label="Common Phrases",
-                placeholder="Common phrases will appear here...",
+                label="My Common Phrases",
+                placeholder="Common phrases I often use with this person will appear here...",
                 lines=5,
             )
 
             # Suggestions output
-            suggestions_output = gr.Textbox(
-                label="Suggested Phrases",
-                placeholder="Suggestions will appear here...",
-                lines=8,
+            suggestions_output = gr.Markdown(
+                label="My Suggested Responses",
+                value="Suggested responses will appear here...",
             )
 
     # Set up event handlers
+    def handle_person_change(person_id):
+        """Handle person selection change and update UI elements."""
+        context_info, phrases_text, _ = on_person_change(person_id)
+
+        # Get topics for this person
+        topics = get_filtered_topics(person_id)
+
+        # Update the context, phrases, and topic dropdown
+        return context_info, phrases_text, gr.update(choices=topics)
+
+    # Set up the person change event
     person_dropdown.change(
-        on_person_change,
+        handle_person_change,
         inputs=[person_dropdown],
-        outputs=[context_display, common_phrases],
+        outputs=[context_display, common_phrases, topic_dropdown],
     )
 
+    # Set up the generate button click event
     generate_btn.click(
         generate_suggestions,
-        inputs=[person_dropdown, user_input, suggestion_type],
+        inputs=[person_dropdown, user_input, suggestion_type, topic_dropdown],
         outputs=[suggestions_output],
     )
 

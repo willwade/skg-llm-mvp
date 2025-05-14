@@ -1,4 +1,11 @@
 {
+  "aac_user": {
+    "name": "Will",
+    "age": 38,
+    "location": "Manchester",
+    "background": "Originally from South East London, now living in Manchester with wife Emma and two children (Mabel, 4 and Billy, 7). Diagnosed with MND 5 months ago. Works as a computer programmer with accommodations for condition. Enjoys technology, Manchester United, and has fond memories of cycling and hiking in the Peak District and Lake District. Was active in Scouts growing up.",
+    "communication_needs": "Increasingly using AAC as speech becomes more difficult. Voice banking in progress. Prefers British English expressions and technical terminology when appropriate. When talking to familar people has a tendency to swear but in a friendly way."
+  },
   "people": {
     "emma": {
       "name": "Emma",
