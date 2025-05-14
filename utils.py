@@ -286,7 +286,11 @@ class SuggestionGenerator:
             test_prompt = "I am Will. My son Billy asked about football. I respond:"
             print(f"Testing model with prompt: {test_prompt}")
             response = self.generator(test_prompt, max_new_tokens=30, do_sample=True)
-            result = response[0]["generated_text"][len(test_prompt) :]
+            full_text = response[0]["generated_text"]
+            if len(test_prompt) < len(full_text):
+                result = full_text[len(test_prompt) :]
+            else:
+                result = "No additional text generated"
             print(f"Test response: {result}")
             return f"Model test successful: {result}"
         except Exception as e:
@@ -468,7 +472,7 @@ My conversation starter to {name}:"""
             # Use max_new_tokens instead of max_length to avoid the error
             response = self.generator(
                 prompt,
-                max_new_tokens=max_length,  # Generate new tokens, not including prompt
+                max_new_tokens=100,  # Generate more tokens to ensure we get a response
                 temperature=temperature,
                 do_sample=True,
                 top_p=0.92,
@@ -477,9 +481,19 @@ My conversation starter to {name}:"""
                 truncation=False,
             )
             # Extract only the generated part, not the prompt
-            result = response[0]["generated_text"][len(prompt) :]
-            print(f"Generated response: {result}")
-            return result.strip()
+            full_text = response[0]["generated_text"]
+            print(f"Full generated text length: {len(full_text)}")
+            print(f"Prompt length: {len(prompt)}")
+
+            # Make sure we're not trying to slice beyond the text length
+            if len(prompt) < len(full_text):
+                result = full_text[len(prompt) :]
+                print(f"Generated response: {result}")
+                return result.strip()
+            else:
+                # If the model didn't generate anything beyond the prompt
+                print("Model didn't generate text beyond prompt")
+                return "I'm thinking about what to say..."
         except Exception as e:
             print(f"Error generating suggestion: {e}")
             return "Could not generate a suggestion. Please try again."
