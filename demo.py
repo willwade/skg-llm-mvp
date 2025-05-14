@@ -398,7 +398,10 @@ class LLMToolInterface(LLMInterface):
                         print("llm install llm-mlx")
                     elif "ollama" in self.model_name.lower():
                         print("llm install llm-ollama")
-                        print("ollama pull " + self.model_name.replace("ollama/", ""))
+                        model_name = self.model_name
+                        if "/" in model_name:
+                            model_name = model_name.split("/")[1]
+                        print("ollama pull " + model_name)
             else:
                 print("Warning: LLM tool may be installed but returned an error.")
         except Exception as e:
@@ -610,7 +613,7 @@ def main():
         "- hf: 'distilgpt2', 'gpt2-medium', 'google/gemma-2b-it'\n"
         "- llm: 'gemini-1.5-pro-latest', 'gemma-3-27b-it' (requires llm-gemini plugin)\n"
         "       'mlx-community/gemma-7b-it' (requires llm-mlx plugin)\n"
-        "       'ollama/gemma3:4b-it-qat', 'ollama/llama3:8b' (requires llm-ollama plugin)",
+        "       'Ollama: gemma3:4b-it-qat', 'Ollama: llama3:8b' (requires llm-ollama plugin)",
     )
     parser.add_argument(
         "--num_responses", type=int, default=3, help="Number of responses to generate"
@@ -705,9 +708,12 @@ def main():
                 print("1. Install from https://ollama.ai/")
                 print("2. Start Ollama with: ollama serve")
                 print("3. Install the llm-ollama plugin: llm install llm-ollama")
-                print(
-                    f"4. Pull the model: ollama pull {args.model.replace('ollama/', '')}"
-                )
+                model_name = args.model
+                if "ollama:" in model_name.lower():
+                    model_name = model_name.replace("Ollama: ", "")
+                elif "/" in model_name:
+                    model_name = model_name.split("/")[1]
+                print(f"4. Pull the model: ollama pull {model_name}")
             else:
                 print("\nMake sure Simon Willison's LLM tool is installed:")
                 print("pip install llm")

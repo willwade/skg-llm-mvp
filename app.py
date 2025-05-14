@@ -4,10 +4,22 @@ import tempfile
 import os
 from utils import SocialGraphManager, SuggestionGenerator
 
-# Initialize the social graph manager and suggestion generator
+# Define available models
+AVAILABLE_MODELS = {
+    "distilgpt2": "DistilGPT2 (Fast, smaller model)",
+    "gpt2": "GPT-2 (Medium size, better quality)",
+    "google/gemma-3-1b-it": "Gemma 3 1B-IT (Small, instruction-tuned)",
+    "Qwen/Qwen1.5-0.5B": "Qwen 1.5 0.5B (Very small, efficient)",
+    "Qwen/Qwen1.5-1.8B": "Qwen 1.5 1.8B (Small, good quality)",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "TinyLlama 1.1B (Small, chat-tuned)",
+    "microsoft/phi-3-mini-4k-instruct": "Phi-3 Mini (Small, instruction-tuned)",
+    "microsoft/phi-2": "Phi-2 (Small, high quality for size)",
+}
+
+# Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with distilgpt2
+# Initialize the suggestion generator with distilgpt2 (default)
 suggestion_generator = SuggestionGenerator("distilgpt2")
 
 # Test the model to make sure it's working
@@ -23,7 +35,8 @@ if not suggestion_generator.model_loaded:
 try:
     whisper_model = whisper.load_model("tiny")
     whisper_loaded = True
-except Exception:
+except Exception as e:
+    print(f"Error loading Whisper model: {e}")
     whisper_loaded = False
 
 
@@ -90,15 +103,54 @@ def on_person_change(person_id):
     return context_info, phrases_text, topics
 
 
-def generate_suggestions(person_id, user_input, suggestion_type, selected_topic=None):
+def change_model(model_name):
+    """Change the language model used for generation.
+
+    Args:
+        model_name: The name of the model to use
+
+    Returns:
+        A status message about the model change
+    """
+    global suggestion_generator
+
+    print(f"Changing model to: {model_name}")
+
+    # Check if we need to change the model
+    if model_name == suggestion_generator.model_name:
+        return f"Already using model: {model_name}"
+
+    # Try to load the new model
+    success = suggestion_generator.load_model(model_name)
+
+    if success:
+        return f"Successfully switched to model: {model_name}"
+    else:
+        return f"Failed to load model: {model_name}. Using fallback responses instead."
+
+
+def generate_suggestions(
+    person_id,
+    user_input,
+    suggestion_type,
+    selected_topic=None,
+    model_name="distilgpt2",
+    temperature=0.7,
+):
     """Generate suggestions based on the selected person and user input."""
     print(
-        f"Generating suggestions with: person_id={person_id}, user_input={user_input}, suggestion_type={suggestion_type}, selected_topic={selected_topic}"
+        f"Generating suggestions with: person_id={person_id}, user_input={user_input}, "
+        f"suggestion_type={suggestion_type}, selected_topic={selected_topic}, "
+        f"model={model_name}, temperature={temperature}"
     )
 
     if not person_id:
         print("No person_id provided")
         return "Please select who you're talking to first."
+
+    # Make sure we're using the right model
+    if model_name != suggestion_generator.model_name:
+        change_model(model_name)
 
     person_context = social_graph.get_person_context(person_id)
     print(f"Person context: {person_context}")
@@ -160,7 +212,7 @@ def generate_suggestions(person_id, user_input, suggestion_type, selected_topic=
             print(f"Generating suggestion {i+1}/3")
             try:
                 suggestion = suggestion_generator.generate_suggestion(
-                    person_context, user_input, temperature=0.7
+                    person_context, user_input, temperature=temperature
                 )
                 print(f"Generated suggestion: {suggestion}")
                 suggestions.append(suggestion)
@@ -168,11 +220,13 @@ def generate_suggestions(person_id, user_input, suggestion_type, selected_topic=
                 print(f"Error generating suggestion: {e}")
                 suggestions.append("Error generating suggestion")
 
-        result = "### AI-Generated Responses:\n\n"
+        result = (
+            f"### AI-Generated Responses (using {suggestion_generator.model_name}):\n\n"
+        )
         for i, suggestion in enumerate(suggestions, 1):
             result += f"{i}. {suggestion}\n\n"
 
-        print(f"Final result: {result}")
+        print(f"Final result: {result[:100]}...")
 
     # If suggestion type is "common_phrases", use the person's common phrases
     elif suggestion_type == "common_phrases":
@@ -194,12 +248,16 @@ def generate_suggestions(person_id, user_input, suggestion_type, selected_topic=
             print("No category inferred, falling back to model")
             # Fall back to model if we couldn't infer a category
             try:
-                suggestion = suggestion_generator.generate_suggestion(
-                    person_context, user_input
-                )
-                print(f"Generated fallback suggestion: {suggestion}")
-                result = "### AI-Generated Response (no category detected):\n\n"
-                result += f"1. {suggestion}\n\n"
+                suggestions = []
+                for i in range(3):
+                    suggestion = suggestion_generator.generate_suggestion(
+                        person_context, user_input, temperature=temperature
+                    )
+                    suggestions.append(suggestion)
+
+                result = f"### AI-Generated Responses (no category detected, using {suggestion_generator.model_name}):\n\n"
+                for i, suggestion in enumerate(suggestions, 1):
+                    result += f"{i}. {suggestion}\n\n"
             except Exception as e:
                 print(f"Error generating fallback suggestion: {e}")
                 result = "### Could not generate a response:\n\n"
@@ -319,8 +377,32 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
                 info="Choose what kind of responses you want (model = AI-generated)",
             )
 
+            # Model selection
+            with gr.Row():
+                model_dropdown = gr.Dropdown(
+                    choices=list(AVAILABLE_MODELS.keys()),
+                    value="distilgpt2",
+                    label="Language Model",
+                    info="Select which AI model to use for generating responses",
+                )
+
+                temperature_slider = gr.Slider(
+                    minimum=0.1,
+                    maximum=1.5,
+                    value=0.7,
+                    step=0.1,
+                    label="Temperature",
+                    info="Controls randomness (higher = more creative, lower = more focused)",
+                )
+
             # Generate button
             generate_btn = gr.Button("Generate My Responses", variant="primary")
+
+            # Model status
+            model_status = gr.Markdown(
+                value=f"Current model: {suggestion_generator.model_name}",
+                label="Model Status",
+            )
 
         with gr.Column(scale=1):
             # Common phrases
@@ -347,6 +429,11 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
         # Update the context, phrases, and topic dropdown
         return context_info, phrases_text, gr.update(choices=topics)
 
+    def handle_model_change(model_name):
+        """Handle model selection change."""
+        status = change_model(model_name)
+        return status
+
     # Set up the person change event
     person_dropdown.change(
         handle_person_change,
@@ -354,10 +441,24 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
         outputs=[context_display, common_phrases, topic_dropdown],
     )
 
+    # Set up the model change event
+    model_dropdown.change(
+        handle_model_change,
+        inputs=[model_dropdown],
+        outputs=[model_status],
+    )
+
     # Set up the generate button click event
     generate_btn.click(
         generate_suggestions,
-        inputs=[person_dropdown, user_input, suggestion_type, topic_dropdown],
+        inputs=[
+            person_dropdown,
+            user_input,
+            suggestion_type,
+            topic_dropdown,
+            model_dropdown,
+            temperature_slider,
+        ],
         outputs=[suggestions_output],
     )
 

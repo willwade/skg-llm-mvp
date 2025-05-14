@@ -159,16 +159,20 @@ class SuggestionGenerator:
         """
         self.model_name = model_name
         self.model_loaded = False
+        self.generator = None
+        self.aac_user_info = None
 
+        # Load AAC user information from social graph
         try:
-            print(f"Loading model: {model_name}")
-            # Use a simpler approach with a pre-built pipeline
-            self.generator = pipeline("text-generation", model=model_name)
-            self.model_loaded = True
-            print(f"Model loaded successfully: {model_name}")
+            with open("social_graph.json", "r") as f:
+                social_graph = json.load(f)
+                self.aac_user_info = social_graph.get("aac_user", {})
         except Exception as e:
-            print(f"Error loading model: {e}")
-            self.model_loaded = False
+            print(f"Error loading AAC user info from social graph: {e}")
+            self.aac_user_info = {}
+
+        # Try to load the model
+        self.load_model(model_name)
 
         # Fallback responses if model fails to load or generate
         self.fallback_responses = [
@@ -176,7 +180,91 @@ class SuggestionGenerator:
             "That's interesting. Tell me more.",
             "I'd like to talk about that further.",
             "I appreciate you sharing that with me.",
+            "Could we talk about something else?",
+            "I need some time to think about that.",
         ]
+
+    def load_model(self, model_name: str) -> bool:
+        """Load a Hugging Face model.
+
+        Args:
+            model_name: Name of the HuggingFace model to use
+
+        Returns:
+            bool: True if model loaded successfully, False otherwise
+        """
+        self.model_name = model_name
+        self.model_loaded = False
+
+        try:
+            print(f"Loading model: {model_name}")
+
+            # Check if this is a gated model that requires authentication
+            is_gated_model = any(
+                name in model_name.lower()
+                for name in ["gemma", "llama", "mistral", "qwen", "phi"]
+            )
+
+            if is_gated_model:
+                # Try to get token from environment
+                import os
+
+                token = os.environ.get("HUGGING_FACE_HUB_TOKEN") or os.environ.get(
+                    "HF_TOKEN"
+                )
+
+                if token:
+                    print(f"Using token for gated model: {model_name}")
+                    from huggingface_hub import login
+
+                    login(token=token, add_to_git_credential=False)
+
+                    # Explicitly pass token to pipeline
+                    from transformers import AutoTokenizer, AutoModelForCausalLM
+
+                    try:
+                        tokenizer = AutoTokenizer.from_pretrained(
+                            model_name, token=token
+                        )
+                        model = AutoModelForCausalLM.from_pretrained(
+                            model_name, token=token
+                        )
+                        self.generator = pipeline(
+                            "text-generation", model=model, tokenizer=tokenizer
+                        )
+                    except Exception as e:
+                        print(f"Error loading gated model with token: {e}")
+                        print(
+                            "This may be due to not having accepted the model license or insufficient permissions."
+                        )
+                        print(
+                            "Please visit the model page on Hugging Face Hub and accept the license."
+                        )
+                        raise
+                else:
+                    print("No Hugging Face token found in environment variables.")
+                    print(
+                        "To use gated models like Gemma, you need to set up a token with the right permissions."
+                    )
+                    print("1. Create a token at https://huggingface.co/settings/tokens")
+                    print(
+                        "2. Make sure to enable 'Access to public gated repositories'"
+                    )
+                    print(
+                        "3. Set it as an environment variable: export HUGGING_FACE_HUB_TOKEN=your_token_here"
+                    )
+                    raise ValueError("Authentication token required for gated model")
+            else:
+                # For non-gated models, use the standard pipeline
+                self.generator = pipeline("text-generation", model=model_name)
+
+            self.model_loaded = True
+            print(f"Model loaded successfully: {model_name}")
+            return True
+        except Exception as e:
+            print(f"Error loading model: {e}")
+            self.model_loaded = False
+            return False
 
     def test_model(self) -> str:
         """Test if the model is working correctly."""
@@ -186,7 +274,9 @@ class SuggestionGenerator:
         try:
             test_prompt = "I am Will. My son Billy asked about football. I respond:"
             print(f"Testing model with prompt: {test_prompt}")
-            response = self.generator(test_prompt, max_length=30, do_sample=True)
+            response = self.generator(
+                test_prompt, max_new_tokens=30, do_sample=True, truncation=True
+            )
             result = response[0]["generated_text"][len(test_prompt) :]
             print(f"Test response: {result}")
             return f"Model test successful: {result}"
@@ -222,39 +312,100 @@ class SuggestionGenerator:
         # Extract context information
         name = person_context.get("name", "")
         role = person_context.get("role", "")
-        topics = ", ".join(person_context.get("topics", []))
+        topics = person_context.get("topics", [])
         context = person_context.get("context", "")
         selected_topic = person_context.get("selected_topic", "")
+        common_phrases = person_context.get("common_phrases", [])
+        frequency = person_context.get("frequency", "")
 
-        # Build prompt
-        prompt = f"""I am Will, a person with MND (Motor Neuron Disease).
-I'm talking to {name}, who is my {role}.
+        # Get AAC user information
+        aac_user = self.aac_user_info
+
+        # Build enhanced prompt
+        prompt = f"""I am {aac_user.get('name', 'Will')}, a {aac_user.get('age', 38)}-year-old with MND (Motor Neuron Disease) from {aac_user.get('location', 'Manchester')}.
+{aac_user.get('background', '')}
+
+My communication needs: {aac_user.get('communication_needs', '')}
+
+I am talking to {name}, who is my {role}.
+About {name}: {context}
+We typically talk about: {', '.join(topics)}
+We communicate {frequency}.
 """
 
-        if context:
-            prompt += f"Context: {context}\n"
+        # Add communication style based on relationship
+        if role in ["wife", "son", "daughter", "mother", "father"]:
+            prompt += "I communicate with my family in a warm, loving way, sometimes using inside jokes.\n"
+        elif role in ["doctor", "therapist", "nurse"]:
+            prompt += "I communicate with healthcare providers in a direct, informative way.\n"
+        elif role in ["best mate", "friend"]:
+            prompt += "I communicate with friends casually, often with humor and sometimes swearing.\n"
+        elif role in ["work colleague", "boss"]:
+            prompt += (
+                "I communicate with colleagues professionally but still friendly.\n"
+            )
 
-        if topics:
-            prompt += f"Topics of interest: {topics}\n"
-
+        # Add topic information if provided
         if selected_topic:
-            prompt += f"We're currently talking about: {selected_topic}\n"
+            prompt += f"\nWe are currently discussing {selected_topic}.\n"
 
+            # Add specific context about this topic with this person
+            if selected_topic == "football" and "Manchester United" in context:
+                prompt += "We both support Manchester United and often discuss recent matches.\n"
+            elif selected_topic == "programming" and "software developer" in context:
+                prompt += "We both work in software development and share technical interests.\n"
+            elif selected_topic == "family plans" and role in ["wife", "husband"]:
+                prompt += (
+                    "We make family decisions together, considering my condition.\n"
+                )
+            elif selected_topic == "old scout adventures" and role == "best mate":
+                prompt += "We often reminisce about our Scout camping trips in South East London.\n"
+            elif selected_topic == "cycling" and "cycling" in context:
+                prompt += "I miss being able to cycle but enjoy talking about past cycling adventures.\n"
+
+        # Add the user's message if provided
         if user_input:
             prompt += f'\n{name} just said to me: "{user_input}"\n'
+        elif common_phrases:
+            # Use a common phrase from the person if no message is provided
+            default_message = common_phrases[0]
+            prompt += f'\n{name} typically says things like: "{default_message}"\n'
 
-        prompt += "\nMy response:"
+        # Add the response prompt with specific guidance
+        # Check if this is an instruction-tuned model
+        is_instruction_model = any(
+            marker in self.model_name.lower()
+            for marker in ["-it", "instruct", "chat", "phi-3", "phi-2"]
+        )
+
+        if is_instruction_model:
+            # Use instruction format for instruction-tuned models
+            prompt += f"""
+<instruction>
+Respond to {name} in a way that is natural, brief (1-2 sentences), and directly relevant to what they just said.
+Use language appropriate for our relationship.
+</instruction>
+
+My response to {name}:"""
+        else:
+            # Use standard format for non-instruction models
+            prompt += f"""
+I want to respond to {name} in a way that is natural, brief (1-2 sentences), and directly relevant to what they just said. I'll use language appropriate for our relationship.
+
+My response to {name}:"""
 
         # Generate suggestion
         try:
             print(f"Generating suggestion with prompt: {prompt}")
+            # Use max_new_tokens instead of max_length to avoid the error
             response = self.generator(
                 prompt,
-                max_length=len(prompt.split()) + max_length,
+                max_new_tokens=max_length,  # Generate new tokens, not including prompt
                 temperature=temperature,
                 do_sample=True,
                 top_p=0.92,
                 top_k=50,
+                truncation=True,
             )
             # Extract only the generated part, not the prompt
             result = response[0]["generated_text"][len(prompt) :]
