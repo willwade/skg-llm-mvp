@@ -329,7 +329,7 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
     gr.Markdown("# Will's AAC Communication Aid")
     gr.Markdown(
         """
-    This demo simulates an AAC system from Will's perspective (a 38-year-old with MND).
+    This demo simulates an AAC system from Will's perspective (a 38-year-old with MND). Its based on a social graph of people in Will's life and their common phrases. The idea is that this graph is generated on device securely. You can see this [here](https://github.com/willwade/skg-llm-mvp/blob/main/social_graph.json)
 
     **How to use this demo:**
     1. Select who you (Will) are talking to from the dropdown
