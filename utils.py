@@ -161,6 +161,7 @@ class SuggestionGenerator:
         self.model_loaded = False
         self.generator = None
         self.aac_user_info = None
+        self.loaded_models = {}  # Cache for loaded models
 
         # Load AAC user information from social graph
         try:
@@ -195,6 +196,13 @@ class SuggestionGenerator:
         """
         self.model_name = model_name
         self.model_loaded = False
+
+        # Check if model is already loaded in cache
+        if model_name in self.loaded_models:
+            print(f"Using cached model: {model_name}")
+            self.generator = self.loaded_models[model_name]
+            self.model_loaded = True
+            return True
 
         try:
             print(f"Loading model: {model_name}")
@@ -257,6 +265,9 @@ class SuggestionGenerator:
             else:
                 # For non-gated models, use the standard pipeline
                 self.generator = pipeline("text-generation", model=model_name)
+
+            # Cache the loaded model
+            self.loaded_models[model_name] = self.generator
 
             self.model_loaded = True
             print(f"Model loaded successfully: {model_name}")

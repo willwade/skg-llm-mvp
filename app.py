@@ -103,11 +103,12 @@ def on_person_change(person_id):
     return context_info, phrases_text, topics
 
 
-def change_model(model_name):
+def change_model(model_name, progress=gr.Progress()):
     """Change the language model used for generation.
 
     Args:
         model_name: The name of the model to use
+        progress: Gradio progress indicator
 
     Returns:
         A status message about the model change
@@ -120,12 +121,17 @@ def change_model(model_name):
     if model_name == suggestion_generator.model_name:
         return f"Already using model: {model_name}"
 
+    # Show progress indicator
+    progress(0, desc=f"Loading model: {model_name}")
+
     # Try to load the new model
     success = suggestion_generator.load_model(model_name)
 
     if success:
+        progress(1.0, desc=f"Model loaded: {model_name}")
         return f"Successfully switched to model: {model_name}"
     else:
+        progress(1.0, desc="Model loading failed")
         return f"Failed to load model: {model_name}. Using fallback responses instead."
 
 
@@ -136,6 +142,7 @@ def generate_suggestions(
     selected_topic=None,
     model_name="distilgpt2",
     temperature=0.7,
+    progress=gr.Progress(),
 ):
     """Generate suggestions based on the selected person and user input."""
     print(
@@ -144,13 +151,17 @@ def generate_suggestions(
         f"model={model_name}, temperature={temperature}"
     )
 
+    # Initialize progress
+    progress(0, desc="Starting...")
+
     if not person_id:
         print("No person_id provided")
         return "Please select who you're talking to first."
 
     # Make sure we're using the right model
     if model_name != suggestion_generator.model_name:
-        change_model(model_name)
+        progress(0.1, desc=f"Switching to model: {model_name}")
+        change_model(model_name, progress)
 
     person_context = social_graph.get_person_context(person_id)
     print(f"Person context: {person_context}")
@@ -206,9 +217,13 @@ def generate_suggestions(
     # If suggestion type is "model", use the language model for multiple suggestions
     if suggestion_type == "model":
         print("Using model for suggestions")
+        progress(0.2, desc="Preparing to generate suggestions...")
+
         # Generate 3 different suggestions
         suggestions = []
         for i in range(3):
+            progress_value = 0.3 + (i * 0.2)  # Progress from 30% to 70%
+            progress(progress_value, desc=f"Generating suggestion {i+1}/3")
             print(f"Generating suggestion {i+1}/3")
             try:
                 suggestion = suggestion_generator.generate_suggestion(
@@ -247,9 +262,14 @@ def generate_suggestions(
         else:
             print("No category inferred, falling back to model")
             # Fall back to model if we couldn't infer a category
+            progress(0.3, desc="No category detected, using model instead...")
             try:
                 suggestions = []
                 for i in range(3):
+                    progress_value = 0.4 + (i * 0.15)  # Progress from 40% to 70%
+                    progress(
+                        progress_value, desc=f"Generating fallback suggestion {i+1}/3"
+                    )
                     suggestion = suggestion_generator.generate_suggestion(
                         person_context, user_input, temperature=temperature
                     )
@@ -278,6 +298,10 @@ def generate_suggestions(
         result = "No suggestions available. Please try a different option."
 
     print(f"Returning result: {result[:100]}...")
+
+    # Complete the progress
+    progress(1.0, desc="Completed!")
+
     return result
 
 
