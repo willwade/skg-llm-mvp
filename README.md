@@ -1,3 +1,16 @@
+---
+title: AAC Social Graph Assistant
+emoji: 🗣️
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 5.29.0
+app_file: app.py
+pinned: false
+license: mit
+short_description: AAC system using social graph for contextual suggestions
+---
+
 # AAC Social Graph Assistant
 
 An Augmentative and Alternative Communication (AAC) system that uses a social graph to provide contextually relevant suggestions for users with Motor Neurone Disease (MND). This demo is designed to be hosted on Hugging Face Spaces using Gradio.
