@@ -97,11 +97,11 @@ To deploy this application to Hugging Face Spaces:
 
 ## Future Improvements
 
-- Add speech recognition for input
-- Implement text-to-speech for output
 - Add a visual representation of the social graph
 - Support for multiple users with different social graphs
 - Add emotion/sentiment detection for more contextually appropriate suggestions
+- Implement text-to-speech for output
+- Improve speech recognition with a larger Whisper model
 
 ## License
 

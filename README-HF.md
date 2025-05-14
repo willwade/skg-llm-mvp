@@ -32,10 +32,10 @@ The current social graph represents a British person with MND who:
 
 1. Select a person from the dropdown menu
 2. View their context information
-3. Optionally enter current conversation context
-4. Choose a suggestion type
-5. Click "Generate Suggestions" to get contextually relevant phrases
-6. Click "Speak Selected Text" to simulate speaking the selected phrase
+3. Optionally enter current conversation context or record audio
+4. If you record audio, click "Transcribe" to convert it to text
+5. Choose a suggestion type
+6. Click "Generate Suggestions" to get contextually relevant phrases
 
 ## Customizing the Social Graph
 

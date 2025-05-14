@@ -169,7 +169,12 @@ with gr.Blocks(title="AAC Social Graph Assistant") as demo:
         outputs=[suggestions_output],
     )
 
-    speak_btn.click(speak_text, inputs=[suggestions_output], outputs=[speech_output])
+    # Transcribe audio to text
+    transcribe_btn.click(
+        transcribe_audio,
+        inputs=[audio_input],
+        outputs=[user_input],
+    )
 
 # Launch the app
 if __name__ == "__main__":
