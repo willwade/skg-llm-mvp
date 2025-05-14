@@ -19,8 +19,8 @@ AVAILABLE_MODELS = {
 # Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with distilgpt2 (default)
-suggestion_generator = SuggestionGenerator("distilgpt2")
+# Initialize the suggestion generator with Gemma 3B (default)
+suggestion_generator = SuggestionGenerator("google/gemma-3-1b-it")
 
 # Test the model to make sure it's working
 test_result = suggestion_generator.test_model()
@@ -140,7 +140,7 @@ def generate_suggestions(
     user_input,
     suggestion_type,
     selected_topic=None,
-    model_name="distilgpt2",
+    model_name="google/gemma-3-1b-it",
     temperature=0.7,
     progress=gr.Progress(),
 ):
@@ -298,9 +298,15 @@ def generate_suggestions(
         result = "No suggestions available. Please try a different option."
 
     print(f"Returning result: {result[:100]}...")
+    print(f"Result type: {type(result)}")
+    print(f"Result length: {len(result)}")
 
     # Complete the progress
     progress(1.0, desc="Completed!")
+
+    # Make sure we're returning a non-empty string
+    if not result or len(result.strip()) == 0:
+        result = "No response was generated. Please try again with different settings."
 
     return result
 
@@ -405,7 +411,7 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     choices=list(AVAILABLE_MODELS.keys()),
-                    value="distilgpt2",
+                    value="google/gemma-3-1b-it",
                     label="Language Model",
                     info="Select which AI model to use for generating responses",
                 )
@@ -442,6 +448,7 @@ with gr.Blocks(title="Will's AAC Communication Aid") as demo:
             suggestions_output = gr.Markdown(
                 label="My Suggested Responses",
                 value="Suggested responses will appear here...",
+                elem_id="suggestions_output",  # Add an ID for easier debugging
             )
 
     # Set up event handlers
