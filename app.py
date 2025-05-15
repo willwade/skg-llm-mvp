@@ -1,29 +1,48 @@
 import gradio as gr
 import whisper
-import tempfile
-import os
-from utils import SocialGraphManager, SuggestionGenerator
+import random
+import time
+from utils import SocialGraphManager
+from llm_interface import LLMInterface
 
 # Define available models
 AVAILABLE_MODELS = {
-    "google/gemma-3-1b-it": "Gemma 3 1B-IT (Small, instruction-tuned)",
-    "google/gemma-3-4b-it": "Gemma 3 4B-IT (Default, instruction-tuned)",
-    "google/gemma-3-12b-it": "Gemma 3 12B-IT (Better quality, instruction-tuned)",
-    "google/gemma-3-27b-it": "Gemma 3 27B-IT (Best quality, instruction-tuned)",
-    "Qwen/Qwen1.5-0.5B": "Qwen 1.5 0.5B (Very small, efficient)",
-    "Qwen/Qwen1.5-1.8B": "Qwen 1.5 1.8B (Small, good quality)",
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "TinyLlama 1.1B (Small, chat-tuned)",
-    "microsoft/phi-3-mini-4k-instruct": "Phi-3 Mini (Small, instruction-tuned)",
-    "microsoft/phi-2": "Phi-2 (Small, high quality for size)",
-    "distilgpt2": "DistilGPT2 (Fast, smaller model)",
-    "gpt2": "GPT-2 (Medium size, better quality)",
+    # Gemini models (online API)
+    "gemini-1.5-flash-latest": "🌐 Gemini 1.5 Flash (Online API - Fast, Recommended)",
+    "gemini-1.5-pro-latest": "🌐 Gemini 1.5 Pro (Online API - High quality)",
+    # OpenAI models (if API key is set)
+    "gpt-3.5-turbo": "🌐 ChatGPT 3.5 (Online API)",
+    "gpt-4o-mini": "🌐 GPT-4o Mini (Online API - Fast)",
+    # Ollama models (if installed locally)
+    "ollama/gemma:7b": "💻 Gemma 7B (Offline - requires Ollama)",
+    "ollama/llama3:8b": "💻 Llama 3 8B (Offline - requires Ollama)",
 }
 
 # Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with Gemma 3 1B (default - smaller model to save memory)
-suggestion_generator = SuggestionGenerator("google/gemma-3-1b-it")
+# Initialize the suggestion generator with a fast online model by default
+print("Initializing with Gemini 1.5 Flash (online model)")
+suggestion_generator = LLMInterface("gemini-1.5-flash-latest")
+
+# Test the model to make sure it's working
+print("Testing model connection...")
+test_result = suggestion_generator.test_model()
+print(f"Model test result: {test_result}")
+
+# If the model didn't load, try Ollama as fallback
+if not suggestion_generator.model_loaded:
+    print("Online model not available, trying Ollama model...")
+    suggestion_generator = LLMInterface("ollama/gemma:7b")
+    test_result = suggestion_generator.test_model()
+    print(f"Ollama model test result: {test_result}")
+
+    # If Ollama also fails, try OpenAI as fallback
+    if not suggestion_generator.model_loaded:
+        print("Ollama not available, trying OpenAI model...")
+        suggestion_generator = LLMInterface("gpt-3.5-turbo")
+        test_result = suggestion_generator.test_model()
+        print(f"OpenAI model test result: {test_result}")
 
 # Test the model to make sure it's working
 test_result = suggestion_generator.test_model()
@@ -137,15 +156,28 @@ def change_model(model_name, progress=gr.Progress()):
     # Show progress indicator
     progress(0, desc=f"Loading model: {model_name}")
 
-    # Try to load the new model
-    success = suggestion_generator.load_model(model_name)
+    # Create a new LLMInterface with the selected model
+    try:
+        progress(0.3, desc=f"Initializing {model_name}...")
+        new_generator = LLMInterface(model_name)
 
-    if success:
-        progress(1.0, desc=f"Model loaded: {model_name}")
-        return f"Successfully switched to model: {model_name}"
-    else:
-        progress(1.0, desc="Model loading failed")
-        return f"Failed to load model: {model_name}. Using fallback responses instead."
+        # Test if the model works
+        progress(0.6, desc="Testing model connection...")
+        test_result = new_generator.test_model()
+        print(f"Model test result: {test_result}")
+
+        if new_generator.model_loaded:
+            # Replace the current generator with the new one
+            suggestion_generator = new_generator
+            progress(1.0, desc=f"Model loaded: {model_name}")
+            return f"Successfully switched to model: {model_name}"
+        else:
+            progress(1.0, desc="Model loading failed")
+            return f"Failed to load model: {model_name}. Using previous model instead."
+    except Exception as e:
+        print(f"Error changing model: {e}")
+        progress(1.0, desc="Error loading model")
+        return f"Error loading model: {model_name}. Using previous model instead."
 
 
 def generate_suggestions(
@@ -153,7 +185,7 @@ def generate_suggestions(
     user_input,
     suggestion_type,
     selected_topic=None,
-    model_name="google/gemma-3-1b-it",
+    model_name="gemini-1.5-flash",
     temperature=0.7,
     mood=3,
     progress=gr.Progress(),
@@ -232,6 +264,9 @@ def generate_suggestions(
     if selected_topic:
         person_context["selected_topic"] = selected_topic
 
+    # Add mood to person context
+    person_context["mood"] = mood
+
     # Format the output with multiple suggestions
     result = ""
 
@@ -240,31 +275,40 @@ def generate_suggestions(
         print("Using model for suggestions")
         progress(0.2, desc="Preparing to generate suggestions...")
 
-        # Generate 3 different suggestions
-        suggestions = []
-        for i in range(3):
-            progress_value = 0.3 + (i * 0.2)  # Progress from 30% to 70%
-            progress(progress_value, desc=f"Generating suggestion {i+1}/3")
-            print(f"Generating suggestion {i+1}/3")
-            try:
-                # Add mood to person context
-                person_context["mood"] = mood
-                suggestion = suggestion_generator.generate_suggestion(
-                    person_context, user_input, temperature=temperature
-                )
-                print(f"Generated suggestion: {suggestion}")
-                suggestions.append(suggestion)
-            except Exception as e:
-                print(f"Error generating suggestion: {e}")
-                suggestions.append("Error generating suggestion")
+        # Generate suggestions using the LLM interface
+        try:
+            # Use the LLM interface to generate multiple suggestions
+            suggestions = suggestion_generator.generate_multiple_suggestions(
+                person_context=person_context,
+                user_input=user_input,
+                num_suggestions=3,
+                temperature=temperature,
+                progress_callback=lambda p, desc: progress(0.2 + (p * 0.7), desc=desc),
+            )
 
-        result = (
-            f"### AI-Generated Responses (using {suggestion_generator.model_name}):\n\n"
-        )
-        for i, suggestion in enumerate(suggestions, 1):
-            result += f"{i}. {suggestion}\n\n"
+            # Make sure we have at least one suggestion
+            if not suggestions:
+                suggestions = ["I'm not sure what to say about that."]
 
-        print(f"Final result: {result[:100]}...")
+            # Make sure we have exactly 3 suggestions (pad with fallbacks if needed)
+            while len(suggestions) < 3:
+                suggestions.append("I'm not sure what else to say about that.")
+
+            result = f"### AI-Generated Responses (using {suggestion_generator.model_name}):\n\n"
+            for i, suggestion in enumerate(suggestions, 1):
+                result += f"{i}. {suggestion}\n\n"
+
+            print(f"Final result: {result[:100]}...")
+
+        except Exception as e:
+            print(f"Error generating suggestions: {e}")
+            result = "### Error generating suggestions:\n\n"
+            result += "1. I'm having trouble generating responses right now.\n\n"
+            result += "2. Please try again or select a different model.\n\n"
+            result += "3. You might want to check your internet connection if using an online model.\n\n"
+
+        # Force a complete progress update before returning
+        progress(0.9, desc="Finalizing suggestions...")
 
     # If suggestion type is "common_phrases", use the person's common phrases
     elif clean_suggestion_type == "common_phrases":
@@ -288,23 +332,87 @@ def generate_suggestions(
             progress(0.3, desc="No category detected, using model instead...")
             try:
                 suggestions = []
+                # Set a timeout for each suggestion generation (10 seconds)
+                timeout_per_suggestion = 10
+
                 for i in range(3):
                     progress_value = 0.4 + (i * 0.15)  # Progress from 40% to 70%
                     progress(
                         progress_value, desc=f"Generating fallback suggestion {i+1}/3"
                     )
-                    # Add mood to person context
-                    person_context["mood"] = mood
-                    suggestion = suggestion_generator.generate_suggestion(
-                        person_context, user_input, temperature=temperature
-                    )
-                    suggestions.append(suggestion)
+                    try:
+                        # Add mood to person context
+                        person_context["mood"] = mood
 
-                result = f"### AI-Generated Responses (no category detected, using {suggestion_generator.model_name}):\n\n"
+                        # Set a start time for timeout tracking
+                        start_time = time.time()
+
+                        # Try to generate a suggestion with timeout
+                        suggestion = None
+
+                        # If model isn't loaded, use fallback immediately
+                        if not suggestion_generator.model_loaded:
+                            print("Model not loaded, using fallback response")
+                            suggestion = random.choice(
+                                suggestion_generator.fallback_responses
+                            )
+                        else:
+                            # Try to generate with the model
+                            suggestion = suggestion_generator.generate_suggestion(
+                                person_context, user_input, temperature=temperature
+                            )
+
+                        # Check if generation took too long
+                        if time.time() - start_time > timeout_per_suggestion:
+                            print(
+                                f"Fallback suggestion {i+1} generation timed out, using fallback"
+                            )
+                            suggestion = (
+                                "I'm not sure what to say about that right now."
+                            )
+
+                        # Only add non-empty suggestions
+                        if suggestion and suggestion.strip():
+                            suggestions.append(suggestion.strip())
+                        else:
+                            print("Empty fallback suggestion received, using default")
+                            suggestions.append("I'm not sure what to say about that.")
+
+                        # Force a progress update after each suggestion
+                        progress(
+                            0.4 + (i * 0.15) + 0.05,
+                            desc=f"Completed fallback suggestion {i+1}/3",
+                        )
+
+                    except Exception as e:
+                        print(f"Error generating fallback suggestion {i+1}: {e}")
+                        suggestions.append("I'm having trouble responding to that.")
+                        # Force a progress update even after error
+                        progress(
+                            0.4 + (i * 0.15) + 0.05,
+                            desc=f"Error in fallback suggestion {i+1}/3",
+                        )
+
+                    # Small delay to ensure UI updates
+                    time.sleep(0.2)
+
+                # Make sure we have at least one suggestion
+                if not suggestions:
+                    suggestions = ["I'm not sure what to say about that."]
+
+                # Make sure we have exactly 3 suggestions (pad with fallbacks if needed)
+                while len(suggestions) < 3:
+                    suggestions.append("I'm not sure what else to say about that.")
+
+                # Force a progress update
+                progress(0.85, desc="Finalizing fallback suggestions...")
+
+                result = "### AI-Generated Responses (no category detected):\n\n"
                 for i, suggestion in enumerate(suggestions, 1):
                     result += f"{i}. {suggestion}\n\n"
             except Exception as e:
                 print(f"Error generating fallback suggestion: {e}")
+                progress(0.9, desc="Error handling...")
                 result = "### Could not generate a response:\n\n"
                 result += "1. Sorry, I couldn't generate a suggestion at this time.\n\n"
 
@@ -334,12 +442,18 @@ def generate_suggestions(
     print(f"Result type: {type(result)}")
     print(f"Result length: {len(result)}")
 
-    # Complete the progress
-    progress(1.0, desc="Completed!")
-
     # Make sure we're returning a non-empty string
     if not result or len(result.strip()) == 0:
         result = "No response was generated. Please try again with different settings."
+
+    # Always complete the progress to 100% before returning
+    progress(1.0, desc="Completed!")
+
+    # Add a small delay to ensure UI updates properly
+    time.sleep(0.5)
+
+    # Print final status
+    print("Generation completed successfully, returning result")
 
     return result
 
@@ -462,9 +576,9 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     choices=list(AVAILABLE_MODELS.keys()),
-                    value="google/gemma-3-1b-it",
+                    value="gemini-1.5-flash-latest",
                     label="Language Model",
-                    info="Select which AI model to use for generating responses",
+                    info="Select which AI model to use (🌐 = online API, 💻 = offline model)",
                 )
 
                 temperature_slider = gr.Slider(
@@ -556,4 +670,8 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
 
 # Launch the app
 if __name__ == "__main__":
-    demo.launch()
+    print("Starting application...")
+    try:
+        demo.launch()
+    except Exception as e:
+        print(f"Error launching application: {e}")
