@@ -216,6 +216,8 @@ class SuggestionGenerator:
             if is_gated_model:
                 # Try to get token from environment
                 import os
+                import torch
+                from transformers import BitsAndBytesConfig
 
                 token = os.environ.get("HUGGING_FACE_HUB_TOKEN") or os.environ.get(
                     "HF_TOKEN"
@@ -231,14 +233,31 @@ class SuggestionGenerator:
                     from transformers import AutoTokenizer, AutoModelForCausalLM
 
                     try:
+                        # Configure 4-bit quantization to save memory
+                        quantization_config = BitsAndBytesConfig(
+                            load_in_4bit=True,
+                            bnb_4bit_compute_dtype=torch.float16,
+                            bnb_4bit_quant_type="nf4",
+                            bnb_4bit_use_double_quant=True,
+                        )
+
                         tokenizer = AutoTokenizer.from_pretrained(
                             model_name, token=token
                         )
+
+                        # Load model with quantization
                         model = AutoModelForCausalLM.from_pretrained(
-                            model_name, token=token
+                            model_name,
+                            token=token,
+                            quantization_config=quantization_config,
+                            device_map="auto",
                         )
+
                         self.generator = pipeline(
-                            "text-generation", model=model, tokenizer=tokenizer
+                            "text-generation",
+                            model=model,
+                            tokenizer=tokenizer,
+                            torch_dtype=torch.float16,
                         )
                     except Exception as e:
                         print(f"Error loading gated model with token: {e}")
@@ -248,7 +267,21 @@ class SuggestionGenerator:
                         print(
                             "Please visit the model page on Hugging Face Hub and accept the license."
                         )
-                        raise
+                        # Try loading without quantization as fallback
+                        try:
+                            print("Trying to load model without quantization...")
+                            tokenizer = AutoTokenizer.from_pretrained(
+                                model_name, token=token
+                            )
+                            model = AutoModelForCausalLM.from_pretrained(
+                                model_name, token=token
+                            )
+                            self.generator = pipeline(
+                                "text-generation", model=model, tokenizer=tokenizer
+                            )
+                        except Exception as e2:
+                            print(f"Fallback loading also failed: {e2}")
+                            raise e
                 else:
                     print("No Hugging Face token found in environment variables.")
                     print(
