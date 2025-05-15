@@ -119,6 +119,9 @@ def get_people_choices():
         display_name = format_person_display(person)
         person_id = person["id"]
         choices[display_name] = person_id
+
+    # Debug the choices
+    print(f"People choices: {choices}")
     return choices
 
 
@@ -152,9 +155,19 @@ def get_suggestion_categories():
 def on_person_change(person_id):
     """Handle person selection change."""
     if not person_id:
-        return "", "", []
+        return "", "", [], ""
 
-    person_context = social_graph.get_person_context(person_id)
+    # Get the people choices dictionary
+    people_choices = get_people_choices()
+
+    # Extract the actual ID if it's in the format "Name (role)"
+    actual_person_id = person_id
+    if person_id in people_choices:
+        # If the person_id is a display name, get the actual ID
+        actual_person_id = people_choices[person_id]
+        print(f"on_person_change: Extracted actual person ID: {actual_person_id}")
+
+    person_context = social_graph.get_person_context(actual_person_id)
 
     # Create a more user-friendly context display
     name = person_context.get("name", "")
@@ -176,7 +189,45 @@ def on_person_change(person_id):
     # Get topics for this person
     topics = person_context.get("topics", [])
 
-    return context_info, phrases_text, topics
+    # Get conversation history for this person
+    conversation_history = person_context.get("conversation_history", [])
+    history_text = ""
+
+    if conversation_history:
+        # Sort by timestamp (most recent first)
+        sorted_history = sorted(
+            conversation_history, key=lambda x: x.get("timestamp", ""), reverse=True
+        )[
+            :2
+        ]  # Get only the 2 most recent conversations
+
+        history_text = "### Recent Conversations:\n\n"
+
+        for i, conversation in enumerate(sorted_history):
+            # Format the timestamp
+            timestamp = conversation.get("timestamp", "")
+            try:
+                import datetime
+
+                dt = datetime.datetime.fromisoformat(timestamp)
+                formatted_date = dt.strftime("%B %d, %Y at %I:%M %p")
+            except (ValueError, TypeError):
+                formatted_date = timestamp
+
+            history_text += f"**Conversation on {formatted_date}:**\n\n"
+
+            # Add the messages
+            messages = conversation.get("messages", [])
+            for message in messages:
+                speaker = message.get("speaker", "Unknown")
+                text = message.get("text", "")
+                history_text += f"*{speaker}*: {text}\n\n"
+
+            # Add a separator between conversations
+            if i < len(sorted_history) - 1:
+                history_text += "---\n\n"
+
+    return context_info, phrases_text, topics, history_text
 
 
 def change_model(model_name, progress=gr.Progress()):
@@ -541,6 +592,129 @@ def transcribe_audio(audio_path):
         return "Could not transcribe audio. Please try again."
 
 
+def save_conversation(person_id, user_input, selected_response):
+    """Save a conversation to the social graph.
+
+    Args:
+        person_id: ID of the person in the conversation
+        user_input: What the person said to Will
+        selected_response: Will's response
+
+    Returns:
+        True if successful, False otherwise
+    """
+    print(f"Saving conversation for person_id: {person_id}")
+    print(f"User input: {user_input}")
+    print(f"Selected response: {selected_response}")
+
+    if not person_id:
+        print("Error: No person_id provided")
+        return False
+
+    if not (user_input or selected_response):
+        print("Error: No user input or selected response provided")
+        return False
+
+    # Create message objects
+    messages = []
+
+    # Get the person's name
+    person_context = social_graph.get_person_context(person_id)
+    if not person_context:
+        print(f"Error: Could not get person context for {person_id}")
+        return False
+
+    person_name = person_context.get("name", "Person")
+    print(f"Person name: {person_name}")
+
+    # Add the user's message if provided
+    if user_input:
+        messages.append({"speaker": person_name, "text": user_input})
+        print(f"Added user message: {user_input}")
+
+    # Add Will's response
+    if selected_response:
+        messages.append({"speaker": "Will", "text": selected_response})
+        print(f"Added Will's response: {selected_response}")
+
+    # Save the conversation
+    if messages:
+        print(f"Saving {len(messages)} messages to conversation history")
+        try:
+            success = social_graph.add_conversation(person_id, messages)
+            print(f"Save result: {success}")
+            if success:
+                # Manage the conversation history (keep only the most recent ones)
+                manage_result = manage_conversation_history(person_id)
+                print(f"Manage conversation history result: {manage_result}")
+            return success
+        except Exception as e:
+            print(f"Error saving conversation: {e}")
+            return False
+    else:
+        print("No messages to save")
+
+    return False
+
+
+def manage_conversation_history(person_id, max_conversations=5):
+    """Manage the conversation history for a person.
+
+    Args:
+        person_id: ID of the person
+        max_conversations: Maximum number of conversations to keep in the social graph
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not person_id:
+        return False
+
+    # Get the person's conversation history
+    person_context = social_graph.get_person_context(person_id)
+    conversation_history = person_context.get("conversation_history", [])
+
+    # If we have more than the maximum number of conversations, summarize the oldest ones
+    if len(conversation_history) > max_conversations:
+        # Sort by timestamp (oldest first)
+        sorted_history = sorted(
+            conversation_history, key=lambda x: x.get("timestamp", "")
+        )
+
+        # Keep the most recent conversations
+        keep_conversations = sorted_history[-max_conversations:]
+
+        # Summarize the older conversations
+        older_conversations = sorted_history[:-max_conversations]
+
+        # Create summaries for the older conversations
+        summaries = []
+        for conversation in older_conversations:
+            summary = social_graph.summarize_conversation(conversation)
+            summaries.append(
+                {"timestamp": conversation.get("timestamp", ""), "summary": summary}
+            )
+
+        # Update the person's conversation history
+        social_graph.graph["people"][person_id][
+            "conversation_history"
+        ] = keep_conversations
+
+        # Add summaries if they don't exist
+        if "conversation_summaries" not in social_graph.graph["people"][person_id]:
+            social_graph.graph["people"][person_id]["conversation_summaries"] = []
+
+        # Add the new summaries
+        social_graph.graph["people"][person_id]["conversation_summaries"].extend(
+            summaries
+        )
+
+        # Save the updated graph
+        return social_graph._save_graph()
+
+    return True
+
+
 # Create the Gradio interface
 with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
     gr.Markdown("# Will's AAC Communication Aid")
@@ -679,6 +853,13 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
                 lines=5,
             )
 
+            # Conversation history display
+            conversation_history = gr.Markdown(
+                label="Recent Conversations",
+                value="Select a person to see recent conversations...",
+                elem_id="conversation_history",
+            )
+
             # Suggestions output
             suggestions_output = gr.Markdown(
                 label="My Suggested Responses",
@@ -686,16 +867,22 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
                 elem_id="suggestions_output",  # Add an ID for easier debugging
             )
 
+            # Add buttons to select and use a specific response
+            with gr.Row():
+                use_response_1 = gr.Button("Use Response 1", variant="secondary")
+                use_response_2 = gr.Button("Use Response 2", variant="secondary")
+                use_response_3 = gr.Button("Use Response 3", variant="secondary")
+
     # Set up event handlers
     def handle_person_change(person_id):
         """Handle person selection change and update UI elements."""
-        context_info, phrases_text, _ = on_person_change(person_id)
+        context_info, phrases_text, _, history_text = on_person_change(person_id)
 
         # Get topics for this person
         topics = get_filtered_topics(person_id)
 
-        # Update the context, phrases, and topic dropdown
-        return context_info, phrases_text, gr.update(choices=topics)
+        # Update the context, phrases, conversation history, and topic dropdown
+        return context_info, phrases_text, gr.update(choices=topics), history_text
 
     def handle_model_change(model_name):
         """Handle model selection change."""
@@ -706,7 +893,7 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
     person_dropdown.change(
         handle_person_change,
         inputs=[person_dropdown],
-        outputs=[context_display, common_phrases, topic_dropdown],
+        outputs=[context_display, common_phrases, topic_dropdown, conversation_history],
     )
 
     # Set up the model change event
@@ -736,6 +923,154 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
         transcribe_audio,
         inputs=[audio_input],
         outputs=[user_input],
+    )
+
+    # Function to extract a response from the suggestions output
+    def extract_response(suggestions_text, response_number):
+        """Extract a specific response from the suggestions output.
+
+        Args:
+            suggestions_text: The text containing all suggestions
+            response_number: Which response to extract (1, 2, or 3)
+
+        Returns:
+            The extracted response or None if not found
+        """
+        print(
+            f"Extracting response {response_number} from suggestions text: {suggestions_text[:100]}..."
+        )
+
+        if not suggestions_text:
+            print("Suggestions text is empty")
+            return None
+
+        if "AI-Generated Responses" not in suggestions_text:
+            print("AI-Generated Responses not found in suggestions text")
+            # Try to extract from any numbered list
+            try:
+                import re
+
+                pattern = rf"{response_number}\.\s+(.*?)(?=\n\n\d+\.|\n\n$|$)"
+                match = re.search(pattern, suggestions_text)
+                if match:
+                    extracted = match.group(1).strip()
+                    print(f"Found response using generic pattern: {extracted[:50]}...")
+                    return extracted
+            except Exception as e:
+                print(f"Error extracting response with generic pattern: {e}")
+            return None
+
+        try:
+            # Look for numbered responses like "1. Response text"
+            import re
+
+            pattern = rf"{response_number}\.\s+(.*?)(?=\n\n\d+\.|\n\n$|$)"
+            match = re.search(pattern, suggestions_text)
+            if match:
+                extracted = match.group(1).strip()
+                print(f"Successfully extracted response: {extracted[:50]}...")
+                return extracted
+            else:
+                print(f"No match found for response {response_number}")
+                # Try a more lenient pattern
+                pattern = rf"{response_number}\.\s+(.*)"
+                match = re.search(pattern, suggestions_text)
+                if match:
+                    extracted = match.group(1).strip()
+                    print(f"Found response using lenient pattern: {extracted[:50]}...")
+                    return extracted
+        except Exception as e:
+            print(f"Error extracting response: {e}")
+
+        print(f"Failed to extract response {response_number}")
+        return None
+
+    # Function to handle using a response
+    def use_response(suggestions_text, response_number, person_id, user_input_text):
+        """Handle using a specific response.
+
+        Args:
+            suggestions_text: The text containing all suggestions
+            response_number: Which response to use (1, 2, or 3)
+            person_id: ID of the person in the conversation
+            user_input_text: What the person said to Will
+
+        Returns:
+            Updated conversation history
+        """
+        print(f"\n=== Using Response {response_number} ===")
+        print(f"Person ID: {person_id}")
+        print(f"User input: {user_input_text}")
+
+        # Check if person_id is valid
+        if not person_id:
+            print("Error: No person_id provided")
+            return "Please select a person first."
+
+        # Get the people choices dictionary
+        people_choices = get_people_choices()
+        print(f"People choices: {people_choices}")
+
+        # Extract the actual ID if it's in the format "Name (role)"
+        actual_person_id = person_id
+        if person_id in people_choices:
+            # If the person_id is a display name, get the actual ID
+            actual_person_id = people_choices[person_id]
+            print(f"Extracted actual person ID: {actual_person_id}")
+
+        print(
+            f"People in social graph: {list(social_graph.graph.get('people', {}).keys())}"
+        )
+
+        # Check if person exists in social graph
+        if actual_person_id not in social_graph.graph.get("people", {}):
+            print(f"Error: Person {actual_person_id} not found in social graph")
+            return f"Error: Person {actual_person_id} not found in social graph."
+
+        # Extract the selected response
+        selected_response = extract_response(suggestions_text, response_number)
+
+        if not selected_response:
+            print("Error: Could not extract response")
+            return "Could not find the selected response. Please try generating responses again."
+
+        # Save the conversation
+        print(f"Saving conversation with response: {selected_response[:50]}...")
+        success = save_conversation(
+            actual_person_id, user_input_text, selected_response
+        )
+
+        if success:
+            print("Successfully saved conversation")
+            # Get updated conversation history
+            try:
+                _, _, _, updated_history = on_person_change(actual_person_id)
+                print("Successfully retrieved updated conversation history")
+                return updated_history
+            except Exception as e:
+                print(f"Error retrieving updated conversation history: {e}")
+                return "Conversation saved, but could not retrieve updated history."
+        else:
+            print("Failed to save conversation")
+            return "Failed to save the conversation. Please try again."
+
+    # Set up the response selection button events
+    use_response_1.click(
+        lambda text, person, input_text: use_response(text, 1, person, input_text),
+        inputs=[suggestions_output, person_dropdown, user_input],
+        outputs=[conversation_history],
+    )
+
+    use_response_2.click(
+        lambda text, person, input_text: use_response(text, 2, person, input_text),
+        inputs=[suggestions_output, person_dropdown, user_input],
+        outputs=[conversation_history],
+    )
+
+    use_response_3.click(
+        lambda text, person, input_text: use_response(text, 3, person, input_text),
+        inputs=[suggestions_output, person_dropdown, user_input],
+        outputs=[conversation_history],
     )
 
 # Launch the app

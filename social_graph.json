@@ -10,7 +10,13 @@
     "emma": {
       "name": "Emma",
       "role": "wife",
-      "topics": ["family plans", "children's activities", "home organization", "weekend outings", "mutual friends"],
+      "topics": [
+        "family plans",
+        "children's activities",
+        "home organization",
+        "weekend outings",
+        "mutual friends"
+      ],
       "frequency": "daily",
       "common_phrases": [
         "Have you taken your medication?",
@@ -20,12 +26,114 @@
         "Do you need anything from the shops?",
         "Your mum called earlier"
       ],
-      "context": "Emma is your wife and partner of 12 years. You met at work where she was in HR. She's been incredibly supportive since your MND diagnosis 5 months ago. She's trying to balance caring for you, the children, and maintaining some normalcy in family life. She's originally from York but has embraced Manchester life."
+      "conversation_history": [
+        {
+          "timestamp": "2025-05-14T18:30:00",
+          "messages": [
+            {
+              "speaker": "Emma",
+              "text": "Have you taken your medication today?"
+            },
+            {
+              "speaker": "Will",
+              "text": "Yes, I took it about an hour ago. Thanks for checking."
+            },
+            {
+              "speaker": "Emma",
+              "text": "Great. How are you feeling now?"
+            },
+            {
+              "speaker": "Will",
+              "text": "A bit tired but otherwise okay. The new dosage seems to be working better."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-05-15T08:15:00",
+          "messages": [
+            {
+              "speaker": "Emma",
+              "text": "Morning love, did you sleep well?"
+            },
+            {
+              "speaker": "Will",
+              "text": "Not too bad. Woke up a couple of times but got back to sleep."
+            },
+            {
+              "speaker": "Emma",
+              "text": "That's good. I've got to take the kids to school, need anything before I go?"
+            },
+            {
+              "speaker": "Will",
+              "text": "I'm all set, thanks. Have a good day."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-05-15T17:19:41.821319",
+          "messages": [
+            {
+              "speaker": "Emma",
+              "text": "How are you feeling this afternoon?"
+            },
+            {
+              "speaker": "Will",
+              "text": "A bit tired, but the new medication seems to be helping with the muscle stiffness."
+            },
+            {
+              "speaker": "Emma",
+              "text": "That's good to hear. Do you want me to bring you anything?"
+            },
+            {
+              "speaker": "Will",
+              "text": "A cup of tea would be lovely, thanks."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-05-15T17:20:31.191371",
+          "messages": [
+            {
+              "speaker": "Emma",
+              "text": "How are you feeling this afternoon?"
+            },
+            {
+              "speaker": "Will",
+              "text": "A bit tired, but the new medication seems to be helping with the muscle stiffness."
+            },
+            {
+              "speaker": "Emma",
+              "text": "That's good to hear. Do you want me to bring you anything?"
+            },
+            {
+              "speaker": "Will",
+              "text": "A cup of tea would be lovely, thanks."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-05-15T17:53:03.681562",
+          "messages": [
+            {
+              "speaker": "Will",
+              "text": "\"Hey Emma,  Just thinking about that lovely Yorkshire pudding recipe we talked about the other day.  Fancy trying it again this weekend?\""
+            }
+          ]
+        }
+      ],
+      "context": "Emma is your wife and partner of 12 years. You met at work where she was in HR. She's been incredibly supportive since your MND diagnosis 5 months ago. She's trying to balance caring for you, the children, and maintaining some normalcy in family life. She's originally from York but has embraced Manchester life.",
+      "mood": 3
     },
     "mabel": {
       "name": "Mabel",
       "role": "daughter",
-      "topics": ["nursery school", "drawing", "dinosaurs", "bedtime stories", "playground"],
+      "topics": [
+        "nursery school",
+        "drawing",
+        "dinosaurs",
+        "bedtime stories",
+        "playground"
+      ],
       "frequency": "daily",
       "common_phrases": [
         "Daddy, look what I made!",
@@ -40,7 +148,13 @@
     "billy": {
       "name": "Billy",
       "role": "son",
-      "topics": ["school", "football", "video games", "science experiments", "cycling"],
+      "topics": [
+        "school",
+        "football",
+        "video games",
+        "science experiments",
+        "cycling"
+      ],
       "frequency": "daily",
       "common_phrases": [
         "Dad, can you help with my homework?",
@@ -55,7 +169,13 @@
     "dr_patel": {
       "name": "Dr. Patel",
       "role": "neurologist",
-      "topics": ["MND progression", "symptom management", "medication", "clinical trials", "assistive technology"],
+      "topics": [
+        "MND progression",
+        "symptom management",
+        "medication",
+        "clinical trials",
+        "assistive technology"
+      ],
       "frequency": "fortnightly",
       "common_phrases": [
         "How have your symptoms been progressing?",
@@ -65,12 +185,70 @@
         "There's a new trial I think you might be eligible for",
         "How are you coping mentally?"
       ],
+      "conversation_history": [
+        {
+          "timestamp": "2025-05-08T14:00:00",
+          "messages": [
+            {
+              "speaker": "Dr. Patel",
+              "text": "How have you been since our last appointment, Will?"
+            },
+            {
+              "speaker": "Will",
+              "text": "The fatigue has been worse, especially in the afternoons."
+            },
+            {
+              "speaker": "Dr. Patel",
+              "text": "I see. And how about the new medication regimen?"
+            },
+            {
+              "speaker": "Will",
+              "text": "It seems to help with the muscle stiffness, but not so much with the fatigue."
+            },
+            {
+              "speaker": "Dr. Patel",
+              "text": "Let's adjust the dosage and timing. I'd like you to take it earlier in the day."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-04-24T15:30:00",
+          "messages": [
+            {
+              "speaker": "Dr. Patel",
+              "text": "I've reviewed your latest test results. Your respiratory function is stable."
+            },
+            {
+              "speaker": "Will",
+              "text": "That's good news. I've been doing the breathing exercises daily."
+            },
+            {
+              "speaker": "Dr. Patel",
+              "text": "Excellent. There's a new clinical trial starting that might be suitable for you."
+            },
+            {
+              "speaker": "Will",
+              "text": "I'd be interested in learning more about it."
+            },
+            {
+              "speaker": "Dr. Patel",
+              "text": "I'll send you the details. It involves a new medication that may help slow progression."
+            }
+          ]
+        }
+      ],
       "context": "Dr. Patel is your neurologist at Manchester Royal Infirmary who's been managing your MND since diagnosis 5 months ago. She's direct but compassionate, and always takes time to explain treatment options. She's particularly interested in getting you enrolled in clinical trials that might help slow progression."
     },
     "jenny": {
       "name": "Jenny",
       "role": "MND nurse specialist",
-      "topics": ["daily management", "equipment needs", "NHS services", "symptom control", "practical advice"],
+      "topics": [
+        "daily management",
+        "equipment needs",
+        "NHS services",
+        "symptom control",
+        "practical advice"
+      ],
       "frequency": "weekly",
       "common_phrases": [
         "How are you managing at home?",
@@ -85,7 +263,13 @@
     "dave": {
       "name": "Dave",
       "role": "best mate",
-      "topics": ["programming", "tech news", "football", "old scout adventures", "pub quizzes"],
+      "topics": [
+        "programming",
+        "tech news",
+        "football",
+        "old scout adventures",
+        "pub quizzes"
+      ],
       "frequency": "weekly",
       "common_phrases": [
         "Fancy watching the match this weekend?",
@@ -95,12 +279,62 @@
         "The lads are asking about you",
         "You're still better at coding than me, even with one hand!"
       ],
+      "conversation_history": [
+        {
+          "timestamp": "2025-05-13T19:45:00",
+          "messages": [
+            {
+              "speaker": "Dave",
+              "text": "Did you see that new JavaScript framework everyone's talking about?"
+            },
+            {
+              "speaker": "Will",
+              "text": "Yeah, seems like overkill for most projects. Classic JavaScript hype cycle."
+            },
+            {
+              "speaker": "Dave",
+              "text": "Exactly! But the boss wants us to evaluate it for the next project."
+            },
+            {
+              "speaker": "Will",
+              "text": "Let me know how it goes. I'll help review the code if you need another pair of eyes."
+            }
+          ]
+        },
+        {
+          "timestamp": "2025-05-10T16:20:00",
+          "messages": [
+            {
+              "speaker": "Dave",
+              "text": "United match was incredible yesterday! Did you watch it?"
+            },
+            {
+              "speaker": "Will",
+              "text": "Every minute! That last-minute goal had me shouting so loud I scared the kids."
+            },
+            {
+              "speaker": "Dave",
+              "text": "Haha! Classic. We should watch the next one together if you're up for it."
+            },
+            {
+              "speaker": "Will",
+              "text": "Definitely. Bring some of that craft beer you mentioned last time."
+            }
+          ]
+        }
+      ],
       "context": "Dave has been your best mate since Scout days in South East London. He also moved to Manchester for work and has been your rock since the diagnosis. He treats you exactly the same as before, which you appreciate. He's a software developer too and brings industry gossip and tech news when he visits."
     },
     "mum": {
       "name": "Mum",
       "role": "mother",
-      "topics": ["family news", "childhood memories", "South London gossip", "health advice", "grandchildren"],
+      "topics": [
+        "family news",
+        "childhood memories",
+        "South London gossip",
+        "health advice",
+        "grandchildren"
+      ],
       "frequency": "twice weekly",
       "common_phrases": [
         "Are you eating properly?",
@@ -110,12 +344,30 @@
         "Your sister sends her love",
         "Remember when you used to climb that tree in the garden?"
       ],
-      "context": "Your mum still lives in the family home in South East London where you grew up. She's worried sick about your diagnosis but tries to stay positive. She visits monthly and calls twice a week. She tends to fuss and offer well-meaning but sometimes unhelpful health advice. She adores her grandchildren."
+      "context": "Your mum still lives in the family home in South East London where you grew up. She's worried sick about your diagnosis but tries to stay positive. She visits monthly and calls twice a week. She tends to fuss and offer well-meaning but sometimes unhelpful health advice. She adores her grandchildren.",
+      "mood": 3,
+      "conversation_history": [
+        {
+          "timestamp": "2025-05-15T17:44:21.814155",
+          "messages": [
+            {
+              "speaker": "Will",
+              "text": "\"Hi Mum, just checking in.  How's your week been so far?\""
+            }
+          ]
+        }
+      ]
     },
     "alex": {
       "name": "Alex",
       "role": "work colleague",
-      "topics": ["programming projects", "work gossip", "flexible working", "accessibility tech", "industry news"],
+      "topics": [
+        "programming projects",
+        "work gossip",
+        "flexible working",
+        "accessibility tech",
+        "industry news"
+      ],
       "frequency": "twice weekly",
       "common_phrases": [
         "The project is still on track",
@@ -130,7 +382,13 @@
     "physio": {
       "name": "Claire",
       "role": "physiotherapist",
-      "topics": ["exercises", "mobility", "equipment", "muscle maintenance", "pain management"],
+      "topics": [
+        "exercises",
+        "mobility",
+        "equipment",
+        "muscle maintenance",
+        "pain management"
+      ],
       "frequency": "weekly",
       "common_phrases": [
         "Let's try these new exercises",
@@ -145,7 +403,13 @@
     "speech_therapist": {
       "name": "Mark",
       "role": "speech and language therapist",
-      "topics": ["speech exercises", "voice banking", "communication devices", "swallowing techniques", "AAC options"],
+      "topics": [
+        "speech exercises",
+        "voice banking",
+        "communication devices",
+        "swallowing techniques",
+        "AAC options"
+      ],
       "frequency": "fortnightly",
       "common_phrases": [
         "Let's practice those vocal exercises",

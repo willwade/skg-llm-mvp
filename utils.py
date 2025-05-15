@@ -2,6 +2,8 @@ import json
 import random
 import threading
 import time
+import datetime
+import os
 from typing import Dict, List, Any, Optional
 from sentence_transformers import SentenceTransformer
 import numpy as np
@@ -147,6 +149,155 @@ class SocialGraphManager:
             )
 
         return utterances
+
+    def get_conversation_history(
+        self, person_id: str, max_conversations: int = 2
+    ) -> List[Dict[str, Any]]:
+        """Get recent conversation history for a specific person.
+
+        Args:
+            person_id: ID of the person to get conversation history for
+            max_conversations: Maximum number of recent conversations to return
+
+        Returns:
+            List of conversation history entries, most recent first
+        """
+        if person_id not in self.graph.get("people", {}):
+            return []
+
+        person_data = self.graph["people"][person_id]
+        conversation_history = person_data.get("conversation_history", [])
+
+        # Sort by timestamp (most recent first)
+        sorted_history = sorted(
+            conversation_history, key=lambda x: x.get("timestamp", ""), reverse=True
+        )
+
+        # Return the most recent conversations
+        return sorted_history[:max_conversations]
+
+    def add_conversation(self, person_id: str, messages: List[Dict[str, str]]) -> bool:
+        """Add a new conversation to a person's history.
+
+        Args:
+            person_id: ID of the person to add conversation for
+            messages: List of message objects with "speaker" and "text" fields
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if person_id not in self.graph.get("people", {}):
+            return False
+
+        # Create a new conversation entry
+        import datetime
+
+        new_conversation = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "messages": messages,
+        }
+
+        # Add to the person's conversation history
+        if "conversation_history" not in self.graph["people"][person_id]:
+            self.graph["people"][person_id]["conversation_history"] = []
+
+        self.graph["people"][person_id]["conversation_history"].append(new_conversation)
+
+        # Save the updated graph
+        return self._save_graph()
+
+    def _save_graph(self) -> bool:
+        """Save the social graph to the JSON file.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            print(f"Saving social graph to {self.graph_path}")
+            # Check if the file is writable
+            if os.path.exists(self.graph_path):
+                if not os.access(self.graph_path, os.W_OK):
+                    print(f"Error: No write permission for {self.graph_path}")
+                    return False
+
+            # Save the graph
+            with open(self.graph_path, "w") as f:
+                json.dump(self.graph, f, indent=2)
+
+            print("Social graph saved successfully")
+            return True
+        except Exception as e:
+            print(f"Error saving social graph: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
+    def summarize_conversation(self, conversation: Dict[str, Any]) -> str:
+        """Generate a summary of a conversation.
+
+        Args:
+            conversation: Conversation entry with timestamp and messages
+
+        Returns:
+            A summary string of the conversation
+        """
+        if not conversation or "messages" not in conversation:
+            return "No conversation data available"
+
+        messages = conversation.get("messages", [])
+        if not messages:
+            return "No messages in conversation"
+
+        # Extract timestamp and format it
+        timestamp = conversation.get("timestamp", "")
+        try:
+            dt = datetime.datetime.fromisoformat(timestamp)
+            formatted_date = dt.strftime("%B %d, %Y at %I:%M %p")
+        except (ValueError, TypeError):
+            formatted_date = timestamp
+
+        # Create a brief summary
+        topic_keywords = set()
+        for message in messages:
+            # Extract potential keywords from messages
+            text = message.get("text", "").lower()
+            # Simple keyword extraction - could be improved with NLP
+            words = [
+                w
+                for w in text.split()
+                if len(w) > 4
+                and w
+                not in [
+                    "about",
+                    "would",
+                    "could",
+                    "should",
+                    "their",
+                    "there",
+                    "these",
+                    "those",
+                    "where",
+                    "which",
+                    "today",
+                    "tomorrow",
+                ]
+            ]
+            topic_keywords.update(words[:3])  # Add up to 3 keywords per message
+
+        # Limit to 5 most representative keywords
+        topic_keywords = list(topic_keywords)[:5]
+
+        # Create summary
+        first_speaker = messages[0].get("speaker", "Unknown") if messages else "Unknown"
+        message_count = len(messages)
+
+        summary = f"Conversation on {formatted_date}: {first_speaker} initiated a {message_count}-message conversation"
+
+        if topic_keywords:
+            summary += f" about {', '.join(topic_keywords)}"
+
+        return summary
 
 
 class SuggestionGenerator:

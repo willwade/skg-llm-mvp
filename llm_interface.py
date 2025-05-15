@@ -177,6 +177,35 @@ My current mood: {mood_description}
         if selected_topic:
             prompt += f"\nWe are currently discussing {selected_topic}.\n"
 
+        # Add conversation history if available
+        conversation_history = person_context.get("conversation_history", [])
+        if conversation_history:
+            # Get the two most recent conversations
+            recent_conversations = sorted(
+                conversation_history, key=lambda x: x.get("timestamp", ""), reverse=True
+            )[:2]
+
+            if recent_conversations:
+                prompt += "\nOur recent conversations:\n"
+
+                for i, conversation in enumerate(recent_conversations):
+                    # Format the timestamp
+                    timestamp = conversation.get("timestamp", "")
+                    try:
+                        dt = datetime.datetime.fromisoformat(timestamp)
+                        formatted_date = dt.strftime("%B %d at %I:%M %p")
+                    except (ValueError, TypeError):
+                        formatted_date = timestamp
+
+                    prompt += f"\nConversation on {formatted_date}:\n"
+
+                    # Add the messages
+                    messages = conversation.get("messages", [])
+                    for message in messages:
+                        speaker = message.get("speaker", "Unknown")
+                        text = message.get("text", "")
+                        prompt += f'{speaker}: "{text}"\n'
+
         # Add the user's message if provided, or set up for conversation initiation
         if user_input:
             # If user input is provided, we're responding to something

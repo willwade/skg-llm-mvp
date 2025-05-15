@@ -101,6 +101,14 @@ You can customize the system by editing the `social_graph.json` file. The file h
 }
 ```
 
+## Plan
+
+Look at using a Structured Knowledge Format (SKF) – a compact, machine-optimized format designed for efficient AI parsing rather than human readability.
+
+We should create a SKF<->JSON converter to convert the social graph JSON into a more compact format. This will help in reducing the size of the social graph and make it easier for AI models to parse.
+
+See also https://github.com/marv1nnnnn/llm-min.txt
+
 ## Current Social Graph Context
 
 The current social graph represents a British person with MND who:
