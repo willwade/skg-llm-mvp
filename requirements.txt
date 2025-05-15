@@ -9,5 +9,4 @@ accelerate>=0.21.0
 google-generativeai>=0.3.0
 llm>=0.25.0
 llm-gemini>=0.1.0
-llm-openai>=0.1.0
 llm-ollama>=0.1.0
