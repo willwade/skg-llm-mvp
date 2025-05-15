@@ -4,6 +4,7 @@ LLM Interface for the AAC app using Simon Willison's LLM library.
 
 import subprocess
 import time
+import datetime
 from typing import List, Optional, Dict, Any
 
 
@@ -140,12 +141,22 @@ class LLMInterface:
         }
         mood_description = mood_descriptions.get(mood, mood_descriptions[3])
 
+        # Get current date and time
+        current_datetime = datetime.datetime.now()
+        current_time = current_datetime.strftime("%I:%M %p")  # e.g., 02:30 PM
+        current_day = current_datetime.strftime("%A")  # e.g., Monday
+        current_date = current_datetime.strftime("%B %d, %Y")  # e.g., January 01, 2023
+
         # Build enhanced prompt
         prompt = f"""I am Will, a 38-year-old with MND (Motor Neuron Disease) from Manchester.
 I am talking to {name}, who is my {role}.
 About {name}: {context}
 We typically talk about: {', '.join(topics)}
 We communicate {frequency}.
+
+Current time: {current_time}
+Current day: {current_day}
+Current date: {current_date}
 
 My current mood: {mood_description}
 """
