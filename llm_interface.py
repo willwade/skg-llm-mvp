@@ -225,7 +225,7 @@ My conversation starter to {name}:"""
                 ],
                 capture_output=True,
                 text=True,
-                timeout=15,  # Add timeout to prevent hanging
+                timeout=30,  # Increase timeout for Gemini API calls
             )
 
             if progress_callback:

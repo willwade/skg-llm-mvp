@@ -2,28 +2,72 @@ import gradio as gr
 import whisper
 import random
 import time
+import os
+import subprocess
+import warnings
+
+# Set environment variable to avoid tokenizer warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from utils import SocialGraphManager
 from llm_interface import LLMInterface
 
-# Define available models
+# Define available models - using only the ones specified by the user
 AVAILABLE_MODELS = {
     # Gemini models (online API)
-    "gemini-1.5-flash-latest": "🌐 Gemini 1.5 Flash (Online API - Fast, Recommended)",
-    "gemini-1.5-pro-latest": "🌐 Gemini 1.5 Pro (Online API - High quality)",
-    # OpenAI models (if API key is set)
-    "gpt-3.5-turbo": "🌐 ChatGPT 3.5 (Online API)",
-    "gpt-4o-mini": "🌐 GPT-4o Mini (Online API - Fast)",
-    # Ollama models (if installed locally)
-    "ollama/gemma:7b": "💻 Gemma 7B (Offline - requires Ollama)",
-    "ollama/llama3:8b": "💻 Llama 3 8B (Offline - requires Ollama)",
+    "gemini-1.5-flash-8b-latest": "🌐 Gemini 1.5 Flash 8B (Online API - Fast, Cheapest)",
+    "gemini-2.0-flash": "🌐 Gemini 2.0 Flash (Online API - Better quality)",
+    "gemma-3-27b-it": "🌐 Gemma 3 27B-IT (Online API - High quality)",
 }
 
 # Initialize the social graph manager
 social_graph = SocialGraphManager("social_graph.json")
 
-# Initialize the suggestion generator with a fast online model by default
-print("Initializing with Gemini 1.5 Flash (online model)")
-suggestion_generator = LLMInterface("gemini-1.5-flash-latest")
+# Check if we're running on Hugging Face Spaces
+is_huggingface_spaces = "SPACE_ID" in os.environ
+
+# Print environment info for debugging
+print(f"Running on Hugging Face Spaces: {is_huggingface_spaces}")
+print(f"GEMINI_API_KEY set: {'Yes' if os.environ.get('GEMINI_API_KEY') else 'No'}")
+print(f"HF_TOKEN set: {'Yes' if os.environ.get('HF_TOKEN') else 'No'}")
+
+# Try to run the setup script if we're on Hugging Face Spaces
+if is_huggingface_spaces:
+    try:
+        print("Running setup script...")
+        subprocess.run(["bash", "setup.sh"], check=True)
+        print("Setup script completed successfully")
+    except Exception as e:
+        print(f"Error running setup script: {e}")
+
+# Check if LLM tool is installed
+llm_installed = False
+try:
+    result = subprocess.run(
+        ["llm", "--version"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if result.returncode == 0:
+        print(f"LLM tool is installed: {result.stdout.strip()}")
+        llm_installed = True
+    else:
+        print("LLM tool returned an error.")
+except Exception as e:
+    print(f"LLM tool not available: {e}")
+
+# Initialize the suggestion generator
+if llm_installed:
+    print("Initializing with Gemini 1.5 Flash 8B (online model via LLM tool)")
+    suggestion_generator = LLMInterface("gemini-1.5-flash-8b-latest")
+    use_llm_interface = True
+else:
+    print("LLM tool not available, falling back to direct Hugging Face implementation")
+    from utils import SuggestionGenerator
+
+    suggestion_generator = SuggestionGenerator("google/gemma-3-1b-it")
+    use_llm_interface = False
 
 # Test the model to make sure it's working
 print("Testing model connection...")
@@ -145,7 +189,7 @@ def change_model(model_name, progress=gr.Progress()):
     Returns:
         A status message about the model change
     """
-    global suggestion_generator
+    global suggestion_generator, use_llm_interface
 
     print(f"Changing model to: {model_name}")
 
@@ -156,24 +200,50 @@ def change_model(model_name, progress=gr.Progress()):
     # Show progress indicator
     progress(0, desc=f"Loading model: {model_name}")
 
-    # Create a new LLMInterface with the selected model
     try:
         progress(0.3, desc=f"Initializing {model_name}...")
-        new_generator = LLMInterface(model_name)
 
-        # Test if the model works
-        progress(0.6, desc="Testing model connection...")
-        test_result = new_generator.test_model()
-        print(f"Model test result: {test_result}")
+        # Use the appropriate interface based on what's available
+        if use_llm_interface:
+            # Create a new LLMInterface with the selected model
+            new_generator = LLMInterface(model_name)
 
-        if new_generator.model_loaded:
-            # Replace the current generator with the new one
-            suggestion_generator = new_generator
-            progress(1.0, desc=f"Model loaded: {model_name}")
-            return f"Successfully switched to model: {model_name}"
+            # Test if the model works
+            progress(0.6, desc="Testing model connection...")
+            test_result = new_generator.test_model()
+            print(f"Model test result: {test_result}")
+
+            if new_generator.model_loaded:
+                # Replace the current generator with the new one
+                suggestion_generator = new_generator
+                progress(1.0, desc=f"Model loaded: {model_name}")
+                return f"Successfully switched to model: {model_name}"
+            else:
+                progress(1.0, desc="Model loading failed")
+                return (
+                    f"Failed to load model: {model_name}. Using previous model instead."
+                )
         else:
-            progress(1.0, desc="Model loading failed")
-            return f"Failed to load model: {model_name}. Using previous model instead."
+            # Using direct Hugging Face implementation
+            from utils import SuggestionGenerator
+
+            # Create a new SuggestionGenerator with the selected model
+            new_generator = SuggestionGenerator(model_name)
+
+            # Test if the model works
+            progress(0.6, desc="Testing model connection...")
+            success = new_generator.load_model(model_name)
+
+            if success:
+                # Replace the current generator with the new one
+                suggestion_generator = new_generator
+                progress(1.0, desc=f"Model loaded: {model_name}")
+                return f"Successfully switched to model: {model_name}"
+            else:
+                progress(1.0, desc="Model loading failed")
+                return (
+                    f"Failed to load model: {model_name}. Using previous model instead."
+                )
     except Exception as e:
         print(f"Error changing model: {e}")
         progress(1.0, desc="Error loading model")
@@ -576,9 +646,9 @@ with gr.Blocks(title="Will's AAC Communication Aid", css="custom.css") as demo:
             with gr.Row():
                 model_dropdown = gr.Dropdown(
                     choices=list(AVAILABLE_MODELS.keys()),
-                    value="gemini-1.5-flash-latest",
+                    value="gemini-1.5-flash-8b-latest",
                     label="Language Model",
-                    info="Select which AI model to use (🌐 = online API, 💻 = offline model)",
+                    info="Select which AI model to use (all are online API models)",
                 )
 
                 temperature_slider = gr.Slider(
